@@ -2,7 +2,8 @@
 #define CACHE_H
 #include <comp421/filesystem.h>
 #include <stdbool.h>
-
+#include <comp421/yalnix.h>
+#include <stdlib.h>
 /**
  * structure to keep data of blocks
  * 
@@ -20,8 +21,8 @@ int BLOCK_NUM;
 ** 0: free
 ** 1: occupied
 */
-bool freeBlocks*;
-bool freeInodes*;
+bool* freeBlocks;
+bool* freeInodes;
 
 struct Block* read_block(int BNum);
 
