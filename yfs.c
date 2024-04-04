@@ -35,7 +35,7 @@ void init() {
         freeBlocks[i] = 0;
     } 
     // set occupied blocks as 1
-    for (i = 2; i < ceil(((INODE_NUM+1)*INODESIZE)/BLOCKSIZE) + 1; ++i) {
+    for (i = 2; i < (int)ceil(((INODE_NUM+1)*INODESIZE)/BLOCKSIZE) + 1; ++i) {
         freeBlocks[i] = 1;
     }
     // traverse into direct and indirect
