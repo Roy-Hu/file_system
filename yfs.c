@@ -12,8 +12,8 @@
  *  
 **/
 void init() {
-    struct Block* block = (struct Block*)malloc(sizeof(struct Block));
-    int read_header = ReadSector(1, (void *) block->datum);
+    // read the first block to get the header
+    struct Block* block = read_block(1);
     struct fs_header* header = (struct fs_header*)malloc(sizeof(struct fs_header));
     memcpy(header, block->datum, sizeof(struct fs_header));
     INODE_NUM = header->num_inodes;
