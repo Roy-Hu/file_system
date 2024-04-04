@@ -1,1 +1,6 @@
 ./filesystem.h
+yfs.o
+iolab.a
+iolab.o
+source/cache.o
+yfs

@@ -1,5 +1,4 @@
 #include "yfs.h"
-#include <math.h>
 #include "cache.h"
 #include <string.h>
 
@@ -21,16 +20,16 @@ void init() {
     INODE_NUM = header->num_inodes;
     BLOCK_NUM = header->num_blocks;
     freeBlocks = (bool*)malloc(sizeof(bool)*BLOCK_NUM);
-    freeInodes = (bool*)malloc(sizeof(bool)*(INODE_NUM+1));
+    freeInodes = (bool*)malloc(sizeof(bool)*INODE_NUM);
     freeInodes[0] = 1;
     freeBlocks[0] = 1;
     freeBlocks[1] = 1;
-    int i;
+    int i = 0;
     // init inode list as free
-    // +1 since does not include header
-    for (i = 1; i < INODE_NUM + 1; ++i) {
+    for (int i = 1; i < INODE_NUM + 1; ++i) {
         freeInodes[i] = 0;
     }
+<<<<<<< HEAD
     // init block list as free,skip 0 and 1
     for (i = 2; i < BLOCK_NUM; ++i) {
         freeBlocks[i] = 0;
@@ -40,6 +39,8 @@ void init() {
         freeBlocks[i] = 1;
     }
     // traverse into direct and indirect
+=======
+>>>>>>> parent of b213021... add some frames
 }
 
 int main() {
