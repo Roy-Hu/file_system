@@ -29,7 +29,6 @@ void init() {
     for (int i = 1; i < INODE_NUM + 1; ++i) {
         freeInodes[i] = 0;
     }
-<<<<<<< HEAD
     // init block list as free,skip 0 and 1
     for (i = 2; i < BLOCK_NUM; ++i) {
         freeBlocks[i] = 0;
@@ -39,10 +38,9 @@ void init() {
         freeBlocks[i] = 1;
     }
     // traverse into direct and indirect
-=======
->>>>>>> parent of b213021... add some frames
 }
 
 int main() {
+    
     return 0;
 }
