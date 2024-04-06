@@ -7,3 +7,13 @@ struct Block* read_block(int BNum) {
     ReadSector(BNum, (void *) block->datum);
     return block;
 }
+
+/* find the inode based on given Inum */
+struct inode* findInode(int Inum) {
+    int block_num = Inum / INODE_PER_BLOCK + 1;
+    struct Block* blk = read_block(block_num);
+    struct inode* temp = (struct inode*)malloc(sizeof(struct inode));
+    int offset = (Inum % INODE_PER_BLOCK)*INODESIZE;
+    memcpy(temp, blk->datum +offset, INODESIZE);
+    return temp;
+}

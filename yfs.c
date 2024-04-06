@@ -2,7 +2,66 @@
 #include "cache.h"
 #include <string.h>
 
+/*
+ * Send msg to the server
+ * Input: pointer to message
+ *
+ */
+// void SendMsg(struct *message, int pid) {
+//     return void;
+// }
 
+int msgHandler(struct message* msg, int pid) {
+    OperationType myType = msg->type;
+    switch(myType) {
+        case OPEN: {
+            break;
+        }
+        case CLOSE: {
+            break;
+        }
+        case CREATE: {
+            break;
+        }
+        case READ: {
+            break;
+        }
+        case WRITE: {
+            break;
+        }
+        case SEEK: {
+            break;
+        }
+        case LINK: {
+            break;
+        }
+        case UNLINK: {
+            break;
+        }
+        case MKDIR: {
+            break;
+        }
+        case RMDIR: {
+            break;
+        }
+        case CHDIR: {
+            break;
+        }
+        case STAT: {
+            break;
+        }
+        case SYNC: {
+            break;
+        }
+        case SHUTDOWN: {
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    return 0;
+}
 
 /**
  * initialization function for yfs 
@@ -22,25 +81,73 @@ void init() {
     freeBlocks = (bool*)malloc(sizeof(bool)*BLOCK_NUM);
     freeInodes = (bool*)malloc(sizeof(bool)*INODE_NUM);
     freeInodes[0] = 1;
+    // root inode
+    freeInodes[ROOTINODE] = 1;
     freeBlocks[0] = 1;
     freeBlocks[1] = 1;
     int i = 0;
     // init inode list as free
-    for (int i = 1; i < INODE_NUM + 1; ++i) {
+    for (i = 2; i < INODE_NUM + 1; ++i) {
         freeInodes[i] = 0;
     }
     // init block list as free,skip 0 and 1
     for (i = 2; i < BLOCK_NUM; ++i) {
         freeBlocks[i] = 0;
     } 
-    // set occupied blocks as 1
+    // set occupied blocks as 1 for inodes
     for (i = 2; i < ((INODE_NUM+1)*INODESIZE)/BLOCKSIZE + 1; ++i) {
         freeBlocks[i] = 1;
     }
     // traverse into direct and indirect
+    for (i = 1; i < INODE_NUM + 1; ++i) {
+        struct inode* temp = findInode(i);
+        if (temp->type != INODE_FREE) {
+            freeInodes[i] = 1;
+            int j;
+            // check direct block
+            for (j = 0; j < NUM_DIRECT; ++j) {
+                // !!! Check the condition
+                if ((j+1)*BLOCKSIZE > temp->size && !(j*BLOCKSIZE < temp->size))
+                    break;
+                freeBlocks[temp->direct[j]] = 1;
+            }
+            // check indirect block
+            if (temp->size > NUM_DIRECT*BLOCKSIZE) {
+                struct Block* Indirect = read_block(temp->indirect);
+                int* array = (int*)Indirect->datum;
+                freeBlocks[temp->indirect] = 1;
+                for (; j <  (temp->size / BLOCKSIZE) + 1; ++j) {
+                    int idx = j - NUM_DIRECT;
+                    freeBlocks[array[idx]] = 1;
+                }
+            }
+        }
+    }
 }
 
-int main() {
-    
+int main(int argc, char** argv) {
+    // initialization
+
+    if (Register(FILE_SERVER) != 0) return ERROR;
+    // It should then Fork and Exec a first client user process.
+    if (argc > 1) {
+        Fork();
+        Exec(argv[1], argv + 1);
+    }
+
+    // receiving messages
+    while(1) {
+        struct message* msg;
+        int pid = Receive((void*)msg);
+        if (pid == ERROR) return ERROR;
+        if (pid == 0) {
+            TracePrintf(1, "Deadlock");
+            Halt();
+        }
+        int opt = msgHandler((struct message*)msg, pid);
+        if (opt == ERROR) return ERROR;
+        msg->output = (short)opt;
+        Reply((void*)msg, pid);
+    }
     return 0;
 }
