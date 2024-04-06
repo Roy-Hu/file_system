@@ -1,8 +1,16 @@
 #include <comp421/iolib.h>
-
-// int Open(char *pathname) {
-//     return 0;
-// }
+#include <comp421/filesystem.h>
+#include "cache.h"
+#include "yfs.h"
+int Open(char *pathname) {
+    TracePrintf(1, "Enter Open File Request, attempting to send message to server...\n");
+    struct message* msg = (struct message*)malloc(sizeof(struct message));
+    OperationType tp = OPEN;
+    msg->type = (short) tp;
+    msg->path_oldName = pathname;
+    Send((void*)msg, -FILE_SERVER);
+    return 0;
+}
 
 // int Close(int fd) {
 //     return 0;

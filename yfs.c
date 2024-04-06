@@ -15,6 +15,7 @@ int msgHandler(struct message* msg, int pid) {
     OperationType myType = msg->type;
     switch(myType) {
         case OPEN: {
+            TracePrintf(1, "Received an open file request!\n");
             break;
         }
         case CLOSE: {
@@ -60,7 +61,7 @@ int msgHandler(struct message* msg, int pid) {
             break;
         }
     }
-    return 0;
+    return pid;
 }
 
 /**
@@ -72,6 +73,7 @@ int msgHandler(struct message* msg, int pid) {
  *  
 **/
 void init() {
+    TracePrintf(1, "Start YFS Initialization\n");
     // read the first block to get the header
     struct Block* block = read_block(1);
     struct fs_header* header = (struct fs_header*)malloc(sizeof(struct fs_header));
@@ -126,28 +128,34 @@ void init() {
 }
 
 int main(int argc, char** argv) {
+    (void) argc;
     // initialization
-
+    init();
+    TracePrintf(1, "Init succeed\n");
     if (Register(FILE_SERVER) != 0) return ERROR;
+    TracePrintf(1, "Register succeed\n");
     // It should then Fork and Exec a first client user process.
-    if (argc > 1) {
-        Fork();
-        Exec(argv[1], argv + 1);
-    }
+    if(Fork() == 0) {
+		Exec(argv[1], argv + 1);
+	}
 
     // receiving messages
     while(1) {
-        struct message* msg;
-        int pid = Receive((void*)msg);
-        if (pid == ERROR) return ERROR;
+        TracePrintf(1, "Begin receiving message\n");
+        struct message msg;
+        int pid = Receive((void*)&msg);
+        if (pid == ERROR) {
+            TracePrintf(1, "ERROR\n");
+            return ERROR;
+        }
         if (pid == 0) {
-            TracePrintf(1, "Deadlock");
+            TracePrintf(1, "Prevent Deadlock!\n");
             Halt();
         }
-        int opt = msgHandler((struct message*)msg, pid);
+        int opt = msgHandler((struct message*)&msg, pid);
         if (opt == ERROR) return ERROR;
-        msg->output = (short)opt;
-        Reply((void*)msg, pid);
+        msg.output = (short)opt;
+        Reply((void*)&msg, pid);
     }
     return 0;
 }

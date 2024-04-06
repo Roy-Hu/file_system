@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#define INODE_PER_BLOCK 8
 /**
  * structure to keep data of blocks
  * 
@@ -14,7 +15,6 @@ typedef struct Block {
     char datum[SECTORSIZE];
 }Block;
 
-int INODE_PER_BLOCK = 8;
 
 int INODE_NUM;
 int BLOCK_NUM;
