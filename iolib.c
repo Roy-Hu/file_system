@@ -2,6 +2,24 @@
 #include <comp421/filesystem.h>
 #include "cache.h"
 #include "yfs.h"
+
+/* keep track of current innode */
+int curr_inode = ROOTINODE;
+/*
+ * For an Open or Create
+ * request, your file system library learns the file’s inode number from the file server process (the current
+ * position within the file is initialized to 0) and stores this within the data structure in the library representing
+ * that open file.
+ */
+typedef struct openedFile {
+    int iNum;
+    int curr_pos;
+    bool isValid; /* 1: for curr entry is valid, 0 otherwise */
+}openedFile;
+
+/* array of struct to keep track of opened files */
+openedFile* filesOpened[MAX_OPEN_FILES];
+
 int Open(char *pathname) {
     TracePrintf(1, "Enter Open File Request, attempting to send message to server...\n");
     struct message* msg = (struct message*)malloc(sizeof(struct message));

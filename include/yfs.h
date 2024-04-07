@@ -6,6 +6,7 @@
 #include <comp421/yalnix.h>
 #include <comp421/iolib.h>
 
+
 /* identify request type */
 typedef enum {
     OPEN,
@@ -38,12 +39,14 @@ typedef struct message {
     int offset_size; /* used interchangeable with size */
     struct Stat *statbuf;
     char *newname;
-    short output; /* reply message */
+    short data; /* reply message/curr_dir */
 
 }messgae;
 
 int msgHandler(struct message* msg, int pid);
-
+int checkNnormalizePathname(char* pathname);
+int findInum(char* pathname, int curr_inum);
+int retrieveDir(int inum, char* dirname);
 void init();
 
 #endif
