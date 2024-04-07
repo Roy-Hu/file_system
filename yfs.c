@@ -129,12 +129,13 @@ int retrieveDir(int inum, char* dirname) {
         if (idx < NUM_DIRECT) {
             int bNum = Indoe->direct[idx];
         }
-        // indirect entry
+        // indirect entry to be implemented
         struct Block* blk = read_block(bNum);
         struct dir_entry dir = ((struct dir_entry*)blk->datum)[i % (BLOCKSIZE/sizeof(struct dir_entry))];
         if (dir != 0) {
             // found a match
             if (!strncmp(dirname, dir->name, DIRNAMELEN)) {
+                free(blk);
                 return (int)dir->inum;
             }
             else {
@@ -143,6 +144,7 @@ int retrieveDir(int inum, char* dirname) {
         }
 
     }
+    free(blk);
     return 0;
 }
 
@@ -159,8 +161,11 @@ void create_file(struct message* msg, int pid) {
     int inum = findInum(pName, curr_inum);
     // TO-DO:
     // 1. check the file name is created or not
-    // 2. if not, check parent dir for inodes if there is any space
-    //    if there is space, allocate a new inode and 
+    // 2. if not:
+    //      find a free position in the block and allocated a new inode for the file
+    //      create a new dir_entry for that filename associate with that inum just
+    //      created and put the entry in the block of parent dir
+    // 3. if created:
 }
 
 int msgHandler(struct message* msg, int pid) {
