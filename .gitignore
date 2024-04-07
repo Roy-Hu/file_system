@@ -2,7 +2,6 @@ filesystem.h
 *o
 *a
 yfs
-test
 DISK
 TRACE
 TTYLOG

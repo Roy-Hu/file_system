@@ -39,16 +39,10 @@ typedef struct message {
 
 int msgHandler(struct message* msg, int pid);
 
-int checkNnormalizePathname(char* pathname);
-
-int findInum(char* pathname, int curr_inum);
-
-int retrieveDir(int inum, char* dirname);
-
-char* getLastFilename(const char* path);
-
 int touch(int inum, char* filename);
 
 void init();
+
+int create_file(struct message* msg, int pid);
 
 #endif

@@ -22,6 +22,7 @@ int getFreeInode() {
 
 void createInode(struct inode* inode, int type) {
     inode->type = type;
+    inode->nlink = 0;
 
     if (type == INODE_DIRECTORY) {
         // for . and ..

@@ -10,7 +10,7 @@
 #include <string.h>
 
 
-void create_file(struct message* msg, int pid) {
+int create_file(struct message* msg, int pid) {
     TracePrintf(1, "Creating a file now...\n");
     char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
     // copy the path name from the calling process given pid
@@ -26,8 +26,9 @@ void create_file(struct message* msg, int pid) {
     if (inum == ERROR) {
         TracePrintf(1, "ERROR when trying to find parent dir, possibly due to an non-existing dir!\n");
         msg->data = ERROR;
-        return;
+        return ERROR;
     }
+
     // TO-DO:
     // 1. check the file name is created or not
     // 2. if not:
@@ -40,26 +41,46 @@ void create_file(struct message* msg, int pid) {
     if (filename[0]=='\0') {
         TracePrintf(1, "Empty file name!\n");
         msg->data = ERROR;
-        return;
+        return ERROR;
     }
+
     int file_inum = retrieveDir(inum, filename);
     // create new file
-    if (file_inum == 0) {
+    if (file_inum == ERROR) {
         int new_inum = touch(file_inum, filename);
         if (new_inum == ERROR) {
             TracePrintf(1, "Error Occurred when creating file\n");
             // reply error
         }
+        struct inode* parent_node = findInode(inum);
+
+        // put the entry in the block of parent dir
+        addInodeEntry(parent_node, new_inum, filename);
+
         TracePrintf(1, "Successfully created file with inum %d\n", new_inum);
+
         // adding to the opened_file table
         msg->data = new_inum;
     }
     // already existed
     // more operations need to be added
     else {
+        struct inode* inode = findInode(file_inum);
+
+        if (inode->type != INODE_REGULAR) {
+            TracePrintf(1, "[ERROR] %s's inode type is not REGULAR\n", filename);
+            return ERROR;
+        }
+
+        TracePrintf(1, "[LOG] File %s already exists\n", filename);
+
+        // truncates the size to 0 
+        inode->size = 0;
+
         msg->data = file_inum;
     }
     
+    return 0;
 }
 
 /* create a file during the */
@@ -83,10 +104,11 @@ int touch(int inum, char* filename) {
     }
     // create a new entry for the file
     struct inode* inode_entry = findInode(new_inum);
-    inode_entry->size=0;
-    inode_entry->type=INODE_REGULAR;
-    inode_entry->reuse++;
-    inode_entry->nlink = 0;
+    createInode(inode_entry, INODE_REGULAR);
+
+    // Why reuse++?
+    // inode_entry->reuse++;
+
 
     // create a new dir
 
