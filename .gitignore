@@ -4,7 +4,6 @@ iolib.a
 iolib.o
 source/cache.o
 yfs
-test
 DISK
 TRACE
 TTYLOG
