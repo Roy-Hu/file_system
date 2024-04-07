@@ -6,12 +6,12 @@
 4. LRU cache
 
 ### use the bash for testing
-'''
+```
 chmod +x testshell.sh
-'''
-'''
+```
+```
 testshell.sh
-'''
+```
 ### Dummy cahce for now
 - Given a block number, return a pointer to a copy of that block in memory
 - In the real cache, that pointer should point to one of the BLOCK_CACHESIZE number of blocks in the cache
