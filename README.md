@@ -2,6 +2,7 @@
 1. Init free blocks and inodes in the file system (finished-ish, not tested)
 2. Finish handling functions to deal with requests send by the client (kernel) (request sending and receiving work!)
 3. Finish each functions in iolib.c
+    - Create (in progress, can process message to allocate a non-existing file)
 4. LRU cache
 
 

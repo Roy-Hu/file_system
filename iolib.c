@@ -18,7 +18,9 @@ typedef struct openedFile {
 }openedFile;
 
 /* array of struct to keep track of opened files */
-openedFile* filesOpened[MAX_OPEN_FILES];
+// openedFile* filesOpened[MAX_OPEN_FILES];
+
+
 
 int Open(char *pathname) {
     TracePrintf(1, "Enter Open File Request, attempting to send message to server...\n");
@@ -34,9 +36,17 @@ int Open(char *pathname) {
 //     return 0;
 // }
 
-// int Create(char *pathname) {
-//     return 0;
-// }
+int Create(char *pathname) {
+    TracePrintf(1, "Enter Open File Request, attempting to send message to server...\n");
+    struct message* msg = (struct message*)malloc(sizeof(struct message));
+    OperationType tp = CREATE;
+    msg->type = (short) tp;
+    msg->path_oldName = pathname;
+    Send((void*)msg, -FILE_SERVER);
+    int res = (int)msg->data;
+    TracePrintf(1, "Created file with %d: \n", res);
+    return res;
+}
 
 // int Read(int fd, void *buf, int size) {
 //     return 0;

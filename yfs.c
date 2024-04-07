@@ -8,7 +8,7 @@
  * Input: pointer to message
  *
  */
-// void SendMsg(struct *message, int pid) {
+// int SendMsg(struct *message, int pid) {
 //     return void;
 // }
 /*
@@ -90,6 +90,10 @@ int findInum(char* pathname, int curr_inum){
                 TracePrintf(1, "Found invalid Inum\n");
                 return ERROR;
             }
+            else if (temp_inum == ERROR) {
+                TracePrintf(1, "Received ERROR when trying to find inum of a subdirectory\n");
+                return ERROR;
+            }
 
         TracePrintf(1, "Found Directory: %s\n", dir_name);
         // update the curr inum
@@ -122,43 +126,70 @@ int retrieveDir(int inum, char* dirname) {
     }
     int dir_size = Inode->size / sizeof(struct dir_entry);
     int i = 0;
+    int bNum = 0;
     while (i < dir_size) {
         // get the
         int idx = (i*sizeof(struct dir_entry))/BLOCKSIZE;
         // direct entry
         if (idx < NUM_DIRECT) {
-            int bNum = Indoe->direct[idx];
+            bNum = Inode->direct[idx];
+        }
+        else {
+            bNum = 0;
         }
         // indirect entry to be implemented
         struct Block* blk = read_block(bNum);
         struct dir_entry dir = ((struct dir_entry*)blk->datum)[i % (BLOCKSIZE/sizeof(struct dir_entry))];
-        if (dir != 0) {
-            // found a match
-            if (!strncmp(dirname, dir->name, DIRNAMELEN)) {
-                free(blk);
-                return (int)dir->inum;
-            }
-            else {
-                i++;
-            }
+       
+        // found a match
+        if (!strncmp(dirname, dir.name, DIRNAMELEN)) {
+            free(blk);
+            return (int)dir.inum;
         }
+        else {
+            i++;
+        }
+        
 
     }
-    free(blk);
+    //free(blk);
+    // not found return inum 0
     return 0;
 }
 
+/* get the filename before the last char */
+char* getLastFilename(const char* path) {
+    const char* lastSlash = strrchr(path, '/');
+    if (lastSlash == NULL) {
+        // No slash found, the path itself is a filename or an empty string.
+        return strdup(path); // Duplicate the whole path as the filename.
+    } else if (*(lastSlash + 1) == '\0') {
+        // The path ends with a slash. There is no filename to extract.
+        return strdup(""); // Return an empty string to indicate no filename.
+    } else {
+        // Extract and return the filename after the last slash.
+        return strdup(lastSlash + 1);
+    }
+}
 
 void create_file(struct message* msg, int pid) {
     TracePrintf(1, "Creating a file now...\n");
-    char pName = (char *)malloc(MAXPATHLEN * sizeof(char));
-    // copy the path name from the calling process
-    int res = CopyFrom(pid, pName, msg->path_oldName, MAXPATHNAMELEN);
-    if (res == ERROR || checkNnormalizePathname(pName) == ERROR) return ERROR;
+    char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
+    // copy the path name from the calling process given pid
+    int res = CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN);
+    if (res == ERROR || checkNnormalizePathname(pName) == ERROR) {
+         TracePrintf(1, "Error creating file, cannot normalize filename\n");
+    }
+    // get the current node from client's iolib
     int curr_inode = msg->data;
     
     // found the inum of the last dir (before the last slash)
-    int inum = findInum(pName, curr_inum);
+    int inum = findInum(pName, curr_inode);
+    if (inum == ERROR) {
+        TracePrintf(1, "ERROR when trying to find parent dir, possibly due to an non-existing dir!\n");
+        msg->data = ERROR;
+        return;
+    }
     // TO-DO:
     // 1. check the file name is created or not
     // 2. if not:
@@ -166,10 +197,85 @@ void create_file(struct message* msg, int pid) {
     //      create a new dir_entry for that filename associate with that inum just
     //      created and put the entry in the block of parent dir
     // 3. if created:
+    char* filename = getLastFilename(pName);
+    // reply with ERROR?
+    if (filename[0]=='\0') {
+        TracePrintf(1, "Empty file name!\n");
+        msg->data = ERROR;
+        return;
+    }
+    int file_inum = retrieveDir(inum, filename);
+    // create new file
+    if (file_inum == 0) {
+        int new_inum = touch(file_inum, filename);
+        if (new_inum == ERROR) {
+            TracePrintf(1, "Error Occurred when creating file\n");
+            // reply error
+        }
+        TracePrintf(1, "Successfully created file with inum %d\n", new_inum);
+        // adding to the opened_file table
+        msg->data = new_inum;
+    }
+    // already existed
+    // more operations need to be added
+    else {
+        msg->data = file_inum;
+    }
+    
+}
+
+/* create a file during the */
+int touch(int inum, char* filename) {
+    (void) inum;
+    (void) filename;
+    TracePrintf(1, "Touch a new file!\n");
+    int new_inum = 0;
+    // allocate a new inode number
+    int i = 1;
+    for (; i < INODE_NUM + 1; ++i) {
+        if (freeInodes[i] == 0) {
+            new_inum = i;
+            freeInodes[i] = 1;
+            break;
+        }
+    }
+    if (new_inum == 0) {
+        TracePrintf(1, "No availiable inode!\n");
+        return ERROR;
+    }
+    // create a new entry for the file
+    struct inode* inode_entry = findInode(new_inum);
+    inode_entry->size=0;
+    inode_entry->type=INODE_REGULAR;
+    inode_entry->reuse++;
+    inode_entry->nlink = 0;
+
+    // create a new dir
+
+    // struct dir_entry dir;
+    // dir.inum = new_inum;
+
+    // memset(&entry.name, '\0', DIRNAMELEN);
+    // int filenameLen = strlen(filename);
+    // if(filenameLen > DIRNAMELEN){
+	// 	 memcpy(&entry.name, filename, DIRNAMELEN);
+	// }
+    // else {
+    //     memcpy(&entry.name, filename, filenameLen);
+    // }
+
+    // adding new dir to parent inode
+
+
+    return new_inum;
+
+
+
 }
 
 int msgHandler(struct message* msg, int pid) {
     OperationType myType = msg->type;
+    int res;
     switch(myType) {
         case OPEN: {
             TracePrintf(1, "Received an open file request!\n");
@@ -179,6 +285,9 @@ int msgHandler(struct message* msg, int pid) {
             break;
         }
         case CREATE: {
+            TracePrintf(1, "Received an create file request!\n");
+            create_file(msg, pid);
+            res = msg->data;
             break;
         }
         case READ: {
@@ -218,7 +327,7 @@ int msgHandler(struct message* msg, int pid) {
             break;
         }
     }
-    return pid;
+    return res;
 }
 
 /**
@@ -238,7 +347,7 @@ void init() {
     INODE_NUM = header->num_inodes;
     BLOCK_NUM = header->num_blocks;
     freeBlocks = (bool*)malloc(sizeof(bool)*BLOCK_NUM);
-    freeInodes = (bool*)malloc(sizeof(bool)*INODE_NUM);
+    freeInodes = (bool*)malloc(sizeof(bool)*(INODE_NUM+1));
     freeInodes[0] = 1;
     // root inode
     freeInodes[ROOTINODE] = 1;
@@ -311,7 +420,7 @@ int main(int argc, char** argv) {
         }
         int opt = msgHandler((struct message*)&msg, pid);
         if (opt == ERROR) return ERROR;
-        msg.output = (short)opt;
+        msg.data = (short)opt;
         Reply((void*)&msg, pid);
     }
     return 0;
