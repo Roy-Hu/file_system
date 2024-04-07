@@ -1,8 +1,6 @@
-./filesystem.h
-yfs.o
-iolib.a
-iolib.o
-source/cache.o
+filesystem.h
+*o
+*a
 yfs
 test
 DISK

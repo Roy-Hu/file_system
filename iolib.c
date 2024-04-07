@@ -1,6 +1,10 @@
 #include <comp421/iolib.h>
 #include <comp421/filesystem.h>
-#include "cache.h"
+#include <comp421/yalnix.h>
+
+#include <stdlib.h>
+#include <stdbool.h>
+
 #include "yfs.h"
 
 /* keep track of current innode */
