@@ -1,178 +1,16 @@
 #include "yfs.h"
 #include "cache.h"
+#include "inode.h"
+#include "disk.h"
+#include "helper.h"
+
+#include <comp421/yalnix.h>
+#include <comp421/iolib.h>
+#include <stdlib.h>
 #include <string.h>
-#include <stddef.h>
 
-/*
- * Send msg to the server
- * Input: pointer to message
- *
- */
-// int SendMsg(struct *message, int pid) {
-//     return void;
-// }
-/*
- * normalize the file name/dir name
- * e.g.: "/aa///a/./aa/" --> /aa/a/aa/
- *
- */
-int checkNnormalizePathname(char* pathname) {
-    if (pathname == NULL) return ERROR;
-    int readPos = 0, writePos = 0;
-    int len = strlen(pathname);
-    char* temp =  (char *)malloc(MAXPATHLEN * sizeof(char));
-    memcpy(temp, pathname, strlen(pathname));
-    // Assuming the path doesn't start with unnecessary "./"
-    while (readPos < len && readPos < MAXPATHLEN) {
-        // Skip multiple slashes
-        if (pathname[readPos] == '/' && pathname[readPos + 1] == '/') {
-            readPos++;
-            continue;
-        }
-        // Skip "./"
-        if (pathname[readPos] == '.' && (pathname[readPos + 1] == '/' || pathname[readPos + 1] == '\0')) {
-            if (pathname[readPos + 1] != '\0') {
-                readPos += 2; // Skip both characters
-            } else {
-                readPos++; // Only skip the dot if it's the last character
-            }
-            continue;
-        }
-        // Copy the current character to its new position
-        pathname[writePos++] = temp[readPos++];
-    }
-    // Null-terminate the cleaned path
-    pathname[writePos] = '\0';
-    free(temp);
-    return 0;
-}
 
-/* find the inum of last dir (before the last slash) */
-int findInum(char* pathname, int curr_inum){
-    TracePrintf(1, "Trying to find directory's inode number...\n");
-    // pathname should be valid (checked before calling the function)
-    char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
-    memcpy(pName, pathname, strlen(pathname));
-    int inum = curr_inum;
-    // null-terminated dir_name
-    char dir_name[DIRNAMELEN + 1];
-    char* end = pName; // Start scanning from the beginning of pName
-    if (pName[0] == '/') {
-        inum = ROOTINODE; // Start from the root directory for absolute paths
-    }
-    char* start = end; // Initialize start at the beginning of pName
-
-    // Continue looping until the end of the string is reached
-    while (*end != '\0') {
-        // Advance 'end' to the next '/' or to the end of the string
-        while (*end != '/' && *end != '\0') {
-            end++;
-        }
-
-        // Check if this is potentially the last segment and it doesn't end with a slash
-        // and if so, exit the loop to disregard it
-        if (*end == '\0' && pName[strlen(pName) - 1] != '/') {
-            break;
-        }
-
-        // Copy the directory name into dir_name if we've found a valid segment
-        if (start != end) { // Ensure we're not looking at consecutive slashes or a slash at the start
-            // Calculate the length of this path component
-            ptrdiff_t len = end - start;
-            if (len > DIRNAMELEN) len = DIRNAMELEN; // Truncate if it's too long
-
-            strncpy(dir_name, start, len); // Copy the segment into dir_name
-            dir_name[len] = '\0'; // Null-terminate the directory name
-
-            // Process the directory name stored in dir_name here
-            int temp_inum = retrieveDir(curr_inum, dir_name);
-            if (temp_inum == 0) {
-                TracePrintf(1, "Found invalid Inum\n");
-                return ERROR;
-            }
-            else if (temp_inum == ERROR) {
-                TracePrintf(1, "Received ERROR when trying to find inum of a subdirectory\n");
-                return ERROR;
-            }
-
-        TracePrintf(1, "Found Directory: %s\n", dir_name);
-        // update the curr inum
-        inum = temp_inum;
-        }
-
-        // If we're at the end of the string, break out of the loop
-        if (*end == '\0') {
-            break;
-        }
-
-        // Otherwise, skip over the '/' and prepare for the next segment
-        end++;
-        start = end;
-    }
-    return inum;
-}
-
-/* 
- * retrieve the directory inum 
- * return 0 if not found
- * Remember to add indirect check...
- */
-int retrieveDir(int inum, char* dirname) {
-    TracePrintf(1, "Retrieving Directory Inum...\n");
-    struct inode* Inode = findInode(inum);
-    if (Inode->type != INODE_DIRECTORY) {
-        TracePrintf(1, "Error! Not a directory inode\n");
-        return ERROR;
-    }
-    int dir_size = Inode->size / sizeof(struct dir_entry);
-    int i = 0;
-    int bNum = 0;
-    while (i < dir_size) {
-        // get the
-        int idx = (i*sizeof(struct dir_entry))/BLOCKSIZE;
-        // direct entry
-        if (idx < NUM_DIRECT) {
-            bNum = Inode->direct[idx];
-        }
-        else {
-            bNum = 0;
-        }
-        // indirect entry to be implemented
-        struct Block* blk = read_block(bNum);
-        struct dir_entry dir = ((struct dir_entry*)blk->datum)[i % (BLOCKSIZE/sizeof(struct dir_entry))];
-       
-        // found a match
-        if (!strncmp(dirname, dir.name, DIRNAMELEN)) {
-            free(blk);
-            return (int)dir.inum;
-        }
-        else {
-            i++;
-        }
-        
-
-    }
-    //free(blk);
-    // not found return inum 0
-    return 0;
-}
-
-/* get the filename before the last char */
-char* getLastFilename(const char* path) {
-    const char* lastSlash = strrchr(path, '/');
-    if (lastSlash == NULL) {
-        // No slash found, the path itself is a filename or an empty string.
-        return strdup(path); // Duplicate the whole path as the filename.
-    } else if (*(lastSlash + 1) == '\0') {
-        // The path ends with a slash. There is no filename to extract.
-        return strdup(""); // Return an empty string to indicate no filename.
-    } else {
-        // Extract and return the filename after the last slash.
-        return strdup(lastSlash + 1);
-    }
-}
-
-void create_file(struct message* msg, int pid) {
+int create_file(struct message* msg, int pid) {
     TracePrintf(1, "Creating a file now...\n");
     char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
     // copy the path name from the calling process given pid
@@ -188,8 +26,9 @@ void create_file(struct message* msg, int pid) {
     if (inum == ERROR) {
         TracePrintf(1, "ERROR when trying to find parent dir, possibly due to an non-existing dir!\n");
         msg->data = ERROR;
-        return;
+        return ERROR;
     }
+
     // TO-DO:
     // 1. check the file name is created or not
     // 2. if not:
@@ -202,26 +41,46 @@ void create_file(struct message* msg, int pid) {
     if (filename[0]=='\0') {
         TracePrintf(1, "Empty file name!\n");
         msg->data = ERROR;
-        return;
+        return ERROR;
     }
+
     int file_inum = retrieveDir(inum, filename);
     // create new file
-    if (file_inum == 0) {
+    if (file_inum == ERROR) {
         int new_inum = touch(file_inum, filename);
         if (new_inum == ERROR) {
             TracePrintf(1, "Error Occurred when creating file\n");
             // reply error
         }
+        struct inode* parent_node = findInode(inum);
+
+        // put the entry in the block of parent dir
+        addInodeEntry(parent_node, new_inum, filename);
+
         TracePrintf(1, "Successfully created file with inum %d\n", new_inum);
+
         // adding to the opened_file table
         msg->data = new_inum;
     }
     // already existed
     // more operations need to be added
     else {
+        struct inode* inode = findInode(file_inum);
+
+        if (inode->type != INODE_REGULAR) {
+            TracePrintf(1, "[ERROR] %s's inode type is not REGULAR\n", filename);
+            return ERROR;
+        }
+
+        TracePrintf(1, "[LOG] File %s already exists\n", filename);
+
+        // truncates the size to 0 
+        inode->size = 0;
+
         msg->data = file_inum;
     }
     
+    return 0;
 }
 
 /* create a file during the */
@@ -245,10 +104,11 @@ int touch(int inum, char* filename) {
     }
     // create a new entry for the file
     struct inode* inode_entry = findInode(new_inum);
-    inode_entry->size=0;
-    inode_entry->type=INODE_REGULAR;
-    inode_entry->reuse++;
-    inode_entry->nlink = 0;
+    createInode(inode_entry, INODE_REGULAR);
+
+    // Why reuse++?
+    // inode_entry->reuse++;
+
 
     // create a new dir
 

@@ -1,11 +1,5 @@
 #ifndef YFS_H
 #define YFS_H
-#include <stdio.h>
-#include <stdlib.h>
-#include <comp421/filesystem.h>
-#include <comp421/yalnix.h>
-#include <comp421/iolib.h>
-
 
 /* identify request type */
 typedef enum {
@@ -44,11 +38,11 @@ typedef struct message {
 }messgae;
 
 int msgHandler(struct message* msg, int pid);
-int checkNnormalizePathname(char* pathname);
-int findInum(char* pathname, int curr_inum);
-int retrieveDir(int inum, char* dirname);
-char* getLastFilename(const char* path);
+
 int touch(int inum, char* filename);
+
 void init();
+
+int create_file(struct message* msg, int pid);
 
 #endif
