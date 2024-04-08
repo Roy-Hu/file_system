@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "yfs.h"
 
@@ -27,7 +28,7 @@ typedef struct openedFile {
 
 
 int Open(char *pathname) {
-    TracePrintf(1, "Enter Open File Request, attempting to send message to server...\n");
+    TracePrintf( 1, "[CLIENT][LOG] Open Request for %s\n", pathname);
     struct message* msg = (struct message*)malloc(sizeof(struct message));
     OperationType tp = OPEN;
     msg->type = (short) tp;
@@ -41,14 +42,18 @@ int Open(char *pathname) {
 // }
 
 int Create(char *pathname) {
-    TracePrintf(1, "Enter Open File Request, attempting to send message to server...\n");
+    TracePrintf( 1, "[CLIENT][LOG] Create Request for %s\n", pathname);
+
     struct message* msg = (struct message*)malloc(sizeof(struct message));
     OperationType tp = CREATE;
     msg->type = (short) tp;
     msg->path_oldName = pathname;
+
     Send((void*)msg, -FILE_SERVER);
     int res = (int)msg->data;
-    TracePrintf(1, "Created file with %d: \n", res);
+    
+    TracePrintf( 1, "[CLIENT][LOG] Created file return %d: \n", res);
+
     return res;
 }
 

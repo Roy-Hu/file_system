@@ -8,15 +8,16 @@
 #include <comp421/iolib.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 
 int create_file(struct message* msg, int pid) {
-    TracePrintf(1, "Creating a file now...\n");
+    TracePrintf( 1, "[SERVER][LOG] Create file\n");
     char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
     // copy the path name from the calling process given pid
     int res = CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN);
     if (res == ERROR || checkNnormalizePathname(pName) == ERROR) {
-         TracePrintf(1, "Error creating file, cannot normalize filename\n");
+         TracePrintf( 1, "[SERVER][ERR] Cannot normalize filename %s\n", pName);
     }
     // get the current node from client's iolib
     int curr_inode = msg->data;
@@ -24,7 +25,7 @@ int create_file(struct message* msg, int pid) {
     // found the inum of the last dir (before the last slash)
     int inum = findInum(pName, curr_inode);
     if (inum == ERROR) {
-        TracePrintf(1, "ERROR when trying to find parent dir, possibly due to an non-existing dir!\n");
+        TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s, non-existing dir!\n", pName);
         msg->data = ERROR;
         return ERROR;
     }
@@ -38,18 +39,19 @@ int create_file(struct message* msg, int pid) {
     // 3. if created:
     char* filename = getLastFilename(pName);
     // reply with ERROR?
-    if (filename[0]=='\0') {
-        TracePrintf(1, "Empty file name!\n");
+    if (filename[0 ]== '\0') {
+        TracePrintf( 1, "[SERVER][ERR] Empty file name!\n");
         msg->data = ERROR;
         return ERROR;
     }
+    TracePrintf( 1, "[SERVER][LOG] Get file name %s\n", filename);
 
     int file_inum = retrieveDir(inum, filename);
     // create new file
     if (file_inum == ERROR) {
         int new_inum = touch(file_inum, filename);
         if (new_inum == ERROR) {
-            TracePrintf(1, "Error Occurred when creating file\n");
+            TracePrintf( 1, "[SERVER][ERR] Fail creating file\n");
             // reply error
         }
         struct inode* parent_node = findInode(inum);
@@ -57,7 +59,7 @@ int create_file(struct message* msg, int pid) {
         // put the entry in the block of parent dir
         addInodeEntry(parent_node, new_inum, filename);
 
-        TracePrintf(1, "Successfully created file with inum %d\n", new_inum);
+        TracePrintf( 1, "[SERVER][INF] Successfully created file %s with inum %d\n", filename, new_inum);
 
         // adding to the opened_file table
         msg->data = new_inum;
@@ -68,11 +70,11 @@ int create_file(struct message* msg, int pid) {
         struct inode* inode = findInode(file_inum);
 
         if (inode->type != INODE_REGULAR) {
-            TracePrintf(1, "[ERROR] %s's inode type is not REGULAR\n", filename);
+            TracePrintf( 1, "[SERVER][ERR] %s's inode type is not REGULAR\n", filename);
             return ERROR;
         }
 
-        TracePrintf(1, "[LOG] File %s already exists\n", filename);
+        TracePrintf( 1, "[SERVER][LOG] File %s already exists\n", filename);
 
         // truncates the size to 0 
         inode->size = 0;
@@ -87,7 +89,7 @@ int create_file(struct message* msg, int pid) {
 int touch(int inum, char* filename) {
     (void) inum;
     (void) filename;
-    TracePrintf(1, "Touch a new file!\n");
+    TracePrintf( 1, "[SERVER][LOG] Touch a new file for %s\n", filename);
     int new_inum = 0;
     // allocate a new inode number
     int i = 1;
@@ -99,7 +101,7 @@ int touch(int inum, char* filename) {
         }
     }
     if (new_inum == 0) {
-        TracePrintf(1, "No availiable inode!\n");
+        TracePrintf( 1, "[SERVER][ERR] No availiable inode!\n");
         return ERROR;
     }
     // create a new entry for the file
@@ -138,14 +140,14 @@ int msgHandler(struct message* msg, int pid) {
     int res;
     switch(myType) {
         case OPEN: {
-            TracePrintf(1, "Received an open file request!\n");
+            TracePrintf( 1, "[SERVER][LOG] Received Open request!\n");
             break;
         }
         case CLOSE: {
             break;
         }
         case CREATE: {
-            TracePrintf(1, "Received an create file request!\n");
+            TracePrintf( 1, "[SERVER][LOG] Received Create request!\n");
             create_file(msg, pid);
             res = msg->data;
             break;
@@ -199,7 +201,7 @@ int msgHandler(struct message* msg, int pid) {
  *  
 **/
 void init() {
-    TracePrintf(1, "Start YFS Initialization\n");
+    TracePrintf( 1, "[SERVER][LOG] Start YFS Initialization\n");
     // read the first block to get the header
     struct Block* block = read_block(1);
     struct fs_header* header = (struct fs_header*)malloc(sizeof(struct fs_header));
@@ -257,9 +259,11 @@ int main(int argc, char** argv) {
     (void) argc;
     // initialization
     init();
-    TracePrintf(1, "Init succeed\n");
+    TracePrintf( 1, "[SERVER][TRC] Init succeed\n");
+
     if (Register(FILE_SERVER) != 0) return ERROR;
-    TracePrintf(1, "Register succeed\n");
+    TracePrintf( 1, "[SERVER][TRC] Register succeed\n");
+
     // It should then Fork and Exec a first client user process.
     if(Fork() == 0) {
 		Exec(argv[1], argv + 1);
@@ -267,21 +271,26 @@ int main(int argc, char** argv) {
 
     // receiving messages
     while(1) {
-        TracePrintf(1, "Begin receiving message\n");
+        TracePrintf( 1, "[SERVER][LOG] Start receiving message\n");
         struct message msg;
+
         int pid = Receive((void*)&msg);
         if (pid == ERROR) {
-            TracePrintf(1, "ERROR\n");
+            TracePrintf( 1, "[SERVER][ERR] Fail to receive msg\n");
             return ERROR;
         }
+
         if (pid == 0) {
-            TracePrintf(1, "Prevent Deadlock!\n");
+            TracePrintf( 1, "[SERVER][LOG] Halt at pid 0 to prevent deadlock\n");
             Halt();
         }
+
         int opt = msgHandler((struct message*)&msg, pid);
         if (opt == ERROR) return ERROR;
+
         msg.data = (short)opt;
         Reply((void*)&msg, pid);
     }
+
     return 0;
 }

@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 /*
  * normalize the file name/dir name
@@ -13,14 +14,14 @@
  */
 int checkNnormalizePathname(char* pathname) {
     if (pathname == NULL) {
-        TracePrintf(1, "[ERROR] Pathname is NULL\n");
+        TracePrintf( 1, "[SERVER][ERR] Pathname is NULL\n");
         return ERROR;
     }
 
     int len = strlen(pathname);
 
     if (len == 0) {
-        TracePrintf(1, "[ERROR] Pathname is empty\n");
+        TracePrintf( 1, "[SERVER][ERR] Pathname is empty\n");
         return ERROR;
     }
 

@@ -3,6 +3,7 @@
 #include <comp421/yalnix.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 /* 
  * find the inode based on given Inum
@@ -22,13 +23,13 @@ int getFreeBlock() {
         }
     }
     
-    TracePrintf(1, "[ERROR] No free block available\n");
+    TracePrintf( 1, "[SERVER][ERR] No free block available\n");
     return ERROR;
 }
 
 struct inode* findInode(int Inum) {
     if (Inum <= 0 || Inum > INODE_NUM) {
-        TracePrintf(1, "[ERROR] Invalid Inum\n");
+        TracePrintf( 1, "[SERVER][ERR] Invalid Inum %d\n", Inum);
         return NULL;
     }
     
@@ -50,7 +51,7 @@ struct Block* read_block(int BNum) {
 
     int res = ReadSector(BNum, (void *) block->datum);
     if (res == ERROR) {
-        TracePrintf(1, "[ERROR] ReadSector failed\n");
+        TracePrintf( 1, "[SERVER][ERR] ReadSector failed\n");
         return NULL;
     }
 

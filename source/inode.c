@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <comp421/yalnix.h>
+#include <stdio.h>
 
 int getFreeInode() {
     int i;
@@ -15,7 +16,7 @@ int getFreeInode() {
         }
     }
 
-    TracePrintf(1, "[ERROR] No free inode available\n");
+    TracePrintf( 1, "[SERVER][ERR] No free inode available\n");
 
     return ERROR;
 }
@@ -67,7 +68,7 @@ void addInodeEntry(struct inode* inode, int inum, char* name) {
 
 /* find the inum of last dir (before the last slash) */
 int findInum(char* pathname, int curr_inum){
-    TracePrintf(1, "Trying to find directory's inode number...\n");
+    TracePrintf( 1, "[SERVER][LOG] Find Inum for %s\n", pathname);
 
     // pathname should be valid (checked before calling the function)
     char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
@@ -94,6 +95,7 @@ int findInum(char* pathname, int curr_inum){
         // Check if this is potentially the last segment and it doesn't end with a slash
         // and if so, exit the loop to disregard it
         if (*end == '\0' && pName[strlen(pName) - 1] != '/') {
+            TracePrintf( 1, "[SERVER][TRC] Found last segment\n");
             break;
         }
 
@@ -109,17 +111,17 @@ int findInum(char* pathname, int curr_inum){
             // Process the directory name stored in dir_name here
             int temp_inum = retrieveDir(curr_inum, dir_name);
             if (temp_inum == 0) {
-                TracePrintf(1, "Found invalid Inum\n");
+                TracePrintf( 1, "[SERVER][ERR] Found invalid Inum\n");
                 return ERROR;
             }
             else if (temp_inum == ERROR) {
-                TracePrintf(1, "Received ERROR when trying to find inum of a subdirectory\n");
+                TracePrintf( 1, "[SERVER][ERR] Fail to find Inum of a subdirectory\n");
                 return ERROR;
             }
 
-        TracePrintf(1, "Found Directory: %s\n", dir_name);
-        // update the curr inum
-        inum = temp_inum;
+            TracePrintf( 1, "[SERVER][TRC] Found Directory: %s\n", dir_name);
+            // update the curr inum
+            inum = temp_inum;
         }
 
         // If we're at the end of the string, break out of the loop
@@ -131,6 +133,8 @@ int findInum(char* pathname, int curr_inum){
         end++;
         start = end;
     }
+
+    TracePrintf( 1, "[SERVER][LOG] Find Inum %d for %s\n", inum, pathname);
     return inum;
 }
 
@@ -140,11 +144,11 @@ int findInum(char* pathname, int curr_inum){
  * Remember to add indirect check...
  */
 int retrieveDir(int inum, char* dirname) {
-    TracePrintf(1, "Retrieving Directory Inum...\n");
+    TracePrintf( 1, "[SERVER][LOG] Retrieving Directory %s Inum\n", dirname);
 
     struct inode* inode = findInode(inum);
     if (inode->type != INODE_DIRECTORY) {
-        TracePrintf(1, "[ERROR] Not a directory inode\n");
+        TracePrintf( 1, "[SERVER][ERR] Not a directory Inode\n");
         return ERROR;
     }
 
@@ -169,11 +173,13 @@ int retrieveDir(int inum, char* dirname) {
         // indirect entry to be implemented
         struct Block* blk = read_block(bNum);
         struct dir_entry* dir = &((struct dir_entry*)blk->datum)[i % (BLOCKSIZE / sizeof(struct dir_entry))];
-        if (dir != NULL && strncmp(dirname, dir->name, DIRNAMELEN)) {
+        if (dir != NULL && strncmp(dirname, dir->name, DIRNAMELEN) == 0) {
             // found a match
             if (idx >= NUM_DIRECT) free(indirectBlk);
 
             free(blk);
+            
+            TracePrintf( 1, "[SERVER][LOG] Retrieving Directory %s inum: %d\n", dirname, (int)dir->inum);
             return (int)dir->inum;
         }
 
