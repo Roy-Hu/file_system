@@ -10,8 +10,9 @@
 #include <string.h>
 #include <stdio.h>
 
-int create(int inode, char* pName, int type) {
-    TracePrintf( 1, "[SERVER][LOG] Create file\n");
+int yfsOpen(int inode, char* pName, int *parent_inum) {
+    TracePrintf( 1, "[SERVER][LOG] Open file\n");
+
     if (normPathname(pName) == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Cannot normalize path name %s\n", pName);
         return ERROR;
@@ -26,13 +27,38 @@ int create(int inode, char* pName, int type) {
     TracePrintf( 1, "[SERVER][LOG] Get last name %s\n", lName);
 
     // found the inum of the last dir (before the last slash)
-    int parent_inum = findInum(pName, inode);
-    if (parent_inum == ERROR) {
+    *parent_inum = findInum(pName, inode);
+    if (*parent_inum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s, non-existing dir!\n", pName);
         return ERROR;
     }
 
-    int file_inum = retrieveDir(parent_inum, lName);
+    return retrieveDir(*parent_inum, lName);
+}
+
+int yfsCreate(int inode, char* pName) {
+    TracePrintf( 1, "[SERVER][LOG] Create file\n");
+
+    return create(inode, pName, INODE_REGULAR);
+}
+
+int yfsMkdir(int inode, char* pName) {
+    TracePrintf( 1, "[SERVER][LOG] Create Directory\n");
+
+    return create(inode, pName, INODE_DIRECTORY);
+}
+
+int create(int inode, char* pName, int type) {
+    char* lName = getLastName(pName);
+    if (lName[0]== '\0') {
+        TracePrintf( 1, "[SERVER][ERR] Empty last name!\n");
+        return ERROR;
+    }
+
+    int parent_inum;
+    int file_inum = yfsOpen(inode, pName, &parent_inum);
+    if (parent_inum == ERROR) return ERROR;
+
     // create new file
     if (file_inum == ERROR) {
         file_inum = getFreeInode();
@@ -51,7 +77,7 @@ int create(int inode, char* pName, int type) {
         // put the entry in the block of parent dir
         addInodeEntry(parent_node, file_inum, lName);
 
-        TracePrintf( 1, "[SERVER][INF] Successfully created file %s with inum %d\n", lName, file_inum);
+        TracePrintf( 1, "[SERVER][INF] Successfully create %s with inum %d\n", lName, file_inum);
     }
     // already existed
     // more operations need to be added

@@ -9,7 +9,7 @@
 #include "yfs.h"
 
 /* keep track of current innode */
-int curr_inode = ROOTINODE;
+int curInode = ROOTINODE;
 /*
  * For an Open or Create
  * request, your file system library learns the file’s inode number from the file server process (the current
@@ -18,23 +18,81 @@ int curr_inode = ROOTINODE;
  */
 typedef struct openedFile {
     int iNum;
-    int curr_pos;
+    int curPos;
     bool isValid; /* 1: for curr entry is valid, 0 otherwise */
-}openedFile;
+} OpenedFile;
 
 /* array of struct to keep track of opened files */
 // openedFile* filesOpened[MAX_OPEN_FILES];
 
+OpenedFile openedFiles[MAX_OPEN_FILES];
 
+bool isInit = false;
+
+void setOpenFile(int iNum, int fd) {
+    openedFiles[fd].iNum = iNum;
+    openedFiles[fd].curPos = 0;
+    openedFiles[fd].isValid = true;
+}
+
+bool opened(int iNum) {
+    int i;
+    for (i = 0; i < MAX_OPEN_FILES; i++) {
+        if (openedFiles[i].iNum == iNum) return true;
+    }
+
+    return false;
+}
+
+int findNewFd() {
+    int i;
+    for (i = 0; i < MAX_OPEN_FILES; i++) {
+        if (!openedFiles[i].isValid) return i;
+    }
+
+    return -1;
+}
+
+void init() {
+    int i;
+    for (i = 0; i < MAX_OPEN_FILES; i++) {
+        openedFiles[i].isValid = false;
+    }
+
+    isInit = true;
+}
 
 int Open(char *pathname) {
+    if (!isInit) init();
+
     TracePrintf( 1, "[CLIENT][LOG] Open Request for %s\n", pathname);
+
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = OPEN;
     msg->type = (short) tp;
     msg->path_oldName = pathname;
+
     Send((void*)msg, -FILE_SERVER);
-    return 0;
+    int res = (int)msg->data;
+    if (res != ERROR) {
+        int fd = findNewFd();
+        if (fd == -1) {
+            TracePrintf( 1, "[CLIENT][ERR] No more file can be opened\n");
+            return ERROR;
+        }
+
+        TracePrintf( 1, "[CLIENT][LOG] Open file inum %d, fd %d: \n", res, fd);
+
+        setOpenFile(res, fd);
+
+        return fd;
+    } else {
+        TracePrintf( 1, "[CLIENT][ERR] Fail to open file\n");
+        return res;
+    }
+
+
+    return res;
 }
 
 // int Close(int fd) {
@@ -42,6 +100,8 @@ int Open(char *pathname) {
 // }
 
 int Create(char *pathname) {
+    if (!isInit) init();
+
     TracePrintf( 1, "[CLIENT][LOG] Create Request for %s\n", pathname);
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
@@ -51,10 +111,23 @@ int Create(char *pathname) {
 
     Send((void*)msg, -FILE_SERVER);
     int res = (int)msg->data;
-    
-    TracePrintf( 1, "[CLIENT][LOG] Created file return %d: \n", res);
+    if (res != ERROR) {
 
-    return res;
+        int fd = findNewFd();
+        if (fd == -1) {
+            TracePrintf( 1, "[CLIENT][ERR] No more file can be opened\n");
+            return ERROR;
+        }
+
+        TracePrintf( 1, "[CLIENT][LOG] Created file inum %d, fd %d: \n", res, fd);
+
+        setOpenFile(res, fd);
+
+        return fd;
+    } else {
+        TracePrintf( 1, "[CLIENT][ERR] Fail to create file\n");
+        return res;
+    }
 }
 
 // int Read(int fd, void *buf, int size) {

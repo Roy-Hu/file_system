@@ -18,6 +18,19 @@ int msgHandler(Messgae* msg, int pid) {
     switch(myType) {
         case OPEN: {
             TracePrintf( 1, "[SERVER][LOG] Received Open request!\n");
+            char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
+            if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
+            }
+
+            int parent_inum;
+            msg->data = yfsOpen(msg->data, pName, &parent_inum);
+            res = msg->data;
+            if (res == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
+                break;
+            }
+
             break;
         }
         case CLOSE: {
@@ -31,7 +44,7 @@ int msgHandler(Messgae* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
             }
 
-            msg->data = create(msg->data, pName, INODE_REGULAR);
+            msg->data = yfsCreate(msg->data, pName);
             res = msg->data;
             if (res == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
@@ -63,7 +76,7 @@ int msgHandler(Messgae* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
             }
 
-            msg->data = create(msg->data, pName, INODE_DIRECTORY);
+            msg->data = yfsCreate(msg->data, pName);
             res = msg->data;
             if (res == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");

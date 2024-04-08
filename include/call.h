@@ -3,8 +3,13 @@
 
 #include <stdbool.h>
 
-int create(int inode, char* pName, int type);
+int yfsOpen(int inode, char* pName, int *parent_inum);
 
+int yfsCreate(int inode, char* pName);
+
+int yfsMkdir(int inode, char* pName);
+
+int create(int inode, char* pName, int type);
 // int touch(int inum, char* filename);
 
 #endif
