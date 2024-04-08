@@ -65,7 +65,7 @@ PUBLIC_DIR = /clear/courses/comp421/pub
 USER_DIR = .
 
 CPPFLAGS = -I$(PUBLIC_DIR)/include -I$(USER_DIR)/include
-CFLAGS = -g -Wall -Wextra -Werror
+CFLAGS = -g -Wall -Wextra
 
 %: %.o
 	$(LINK.o) -o $@ $^ iolib.a $(LOADLIBES) $(LDLIBS)

@@ -21,14 +21,25 @@ int getFreeInode() {
     return ERROR;
 }
 
-void createInode(struct inode* inode, int type) {
+void createInode(struct inode* inode, int inum, int parent_inum, int type) {
     inode->type = type;
     inode->nlink = 0;
 
     if (type == INODE_DIRECTORY) {
+        TracePrintf( 1, "[SERVER][LOG] Create Directory Inode\n");
         // for . and ..
-        inode->size = 2 * sizeof(struct dir_entry);
+        inode->direct[0] = getFreeBlock();
+        if (inode->direct[0] == 0) {
+            TracePrintf( 1, "[SERVER][ERR] No free block available\n");
+            return;
+        }
+
+        addInodeEntry(inode, inum, ".");
+        addInodeEntry(inode, parent_inum, "..");
+
     } else {
+        TracePrintf( 1, "[SERVER][LOG] Create Regular Inode\n");
+
         inode->size = 0;
     }
 
@@ -64,6 +75,8 @@ void addInodeEntry(struct inode* inode, int inum, char* name) {
     }
 
     inode->size += sizeof(struct dir_entry);
+
+    writeInode(inum,inode);
 }
 
 /* find the inum of last dir (before the last slash) */
@@ -148,7 +161,7 @@ int retrieveDir(int inum, char* dirname) {
 
     struct inode* inode = findInode(inum);
     if (inode->type != INODE_DIRECTORY) {
-        TracePrintf( 1, "[SERVER][ERR] Not a directory Inode\n");
+        TracePrintf( 1, "[SERVER][ERR] %d Not a directory Inode\n", inum);
         return ERROR;
     }
 

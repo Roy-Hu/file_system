@@ -36,4 +36,6 @@ int getFreeBlock();
 
 struct Block* read_block(int BNum);
 
+void writeInode(int iNum, struct inode* inode);
+
 #endif

@@ -85,9 +85,23 @@ int Create(char *pathname) {
 //     return 0;
 // }
 
-// int MkDir(char *pathname) {
-//     return 0;
-// }
+int MkDir(char *pathname) {
+    TracePrintf( 1, "[CLIENT][LOG] MkDir Request for %s\n", pathname);
+
+    struct message* msg = (struct message*)malloc(sizeof(struct message));
+    OperationType tp = MKDIR;
+    msg->type = (short) tp;
+    msg->path_oldName = pathname;
+
+    Send((void*)msg, -FILE_SERVER);
+    int res = (int)msg->data;
+    
+    TracePrintf( 1, "[CLIENT][LOG] Created file return %d: \n", res);
+
+    return res;
+
+    return 0;
+}
 
 // int RmDir(char *pathname) {
 //     return 0;

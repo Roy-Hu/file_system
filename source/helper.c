@@ -12,7 +12,7 @@
  * e.g.: "/aa///a/./aa/" --> /aa/a/aa/
  *
  */
-int checkNnormalizePathname(char* pathname) {
+int normPathname(char* pathname) {
     if (pathname == NULL) {
         TracePrintf( 1, "[SERVER][ERR] Pathname is NULL\n");
         return ERROR;
@@ -57,7 +57,7 @@ int checkNnormalizePathname(char* pathname) {
 }
 
 /* get the filename before the last char */
-char* getLastFilename(const char* path) {
+char* getLastName(const char* path) {
     const char* lastSlash = strrchr(path, '/');
     if (lastSlash == NULL) {
         // No slash found, the path itself is a filename or an empty string.

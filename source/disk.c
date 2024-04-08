@@ -27,6 +27,22 @@ int getFreeBlock() {
     return ERROR;
 }
 
+void writeInode(int Inum, struct inode* inode) {
+    if (Inum <= 0 || Inum > INODE_NUM) {
+        TracePrintf( 1, "[SERVER][ERR] Invalid Inum %d\n", Inum);
+        return;
+    }
+
+    int block_num = getInodeBlockNum(Inum);
+    int offset = (Inum % INODE_PER_BLOCK) * INODESIZE;
+
+    struct Block* blk = read_block(block_num);
+
+    memcpy(blk->datum + offset, inode, INODESIZE);
+
+    WriteSector(block_num, (void *) blk->datum);
+};
+
 struct inode* findInode(int Inum) {
     if (Inum <= 0 || Inum > INODE_NUM) {
         TracePrintf( 1, "[SERVER][ERR] Invalid Inum %d\n", Inum);

@@ -1,8 +1,8 @@
 #ifndef HELPER_H
 #define HELPER_H
 
-int checkNnormalizePathname(char* pathname);
+int normPathname(char* pathname);
 
-char* getLastFilename(const char* path);
+char* getLastName(const char* path);
 
 #endif

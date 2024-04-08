@@ -10,7 +10,7 @@ int
 main()
 {
     TracePrintf( 1, "Communicate test in progress\n");
-    Create("/sss");
+    MkDir("/sss");
 
     // This should return ERR since /sss is a file
 	Create("/sss/ssss");

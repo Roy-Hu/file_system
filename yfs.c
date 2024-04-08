@@ -31,7 +31,7 @@ int msgHandler(struct message* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
             }
 
-            msg->data = create_file(msg->data, pName);
+            msg->data = create_file(msg->data, pName, false);
             res = msg->data;
             if (res == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
@@ -56,6 +56,20 @@ int msgHandler(struct message* msg, int pid) {
             break;
         }
         case MKDIR: {
+            TracePrintf( 1, "[SERVER][LOG] Received Mkdir request!\n");
+
+            char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
+            if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
+            }
+
+            msg->data = create_file(msg->data, pName, true);
+            res = msg->data;
+            if (res == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
+                break;
+            }
+
             break;
         }
         case RMDIR: {
@@ -96,8 +110,8 @@ void init() {
     memcpy(header, block->datum, sizeof(struct fs_header));
     INODE_NUM = header->num_inodes;
     BLOCK_NUM = header->num_blocks;
-    freeBlocks = (bool*)malloc(sizeof(bool)*BLOCK_NUM);
-    freeInodes = (bool*)malloc(sizeof(bool)*(INODE_NUM+1));
+    freeBlocks = (bool*)malloc(sizeof(bool) * BLOCK_NUM);
+    freeInodes = (bool*)malloc(sizeof(bool) * (INODE_NUM+1));
     freeInodes[0] = 1;
     // root inode
     freeInodes[ROOTINODE] = 1;
@@ -113,7 +127,7 @@ void init() {
         freeBlocks[i] = 0;
     } 
     // set occupied blocks as 1 for inodes
-    for (i = 2; i < ((INODE_NUM+1)*INODESIZE)/BLOCKSIZE + 1; ++i) {
+    for (i = 2; i < ((INODE_NUM + 1) * INODESIZE) / BLOCKSIZE + 1; ++i) {
         freeBlocks[i] = 1;
     }
     // traverse into direct and indirect
@@ -125,14 +139,14 @@ void init() {
             // check direct block
             for (j = 0; j < NUM_DIRECT; ++j) {
                 // !!! Check the condition
-                if ((j+1)*BLOCKSIZE > temp->size && !(j*BLOCKSIZE < temp->size))
+                if ((j + 1) * BLOCKSIZE > temp->size && !(j * BLOCKSIZE < temp->size))
                     break;
                 freeBlocks[temp->direct[j]] = 1;
             }
             // check indirect block
-            if (temp->size > NUM_DIRECT*BLOCKSIZE) {
-                struct Block* Indirect = read_block(temp->indirect);
-                int* array = (int*)Indirect->datum;
+            if (temp->size > NUM_DIRECT * BLOCKSIZE) {
+                struct Block* indirect = read_block(temp->indirect);
+                int* array = (int*)indirect->datum;
                 freeBlocks[temp->indirect] = 1;
                 for (; j <  (temp->size / BLOCKSIZE) + 1; ++j) {
                     int idx = j - NUM_DIRECT;

@@ -5,11 +5,11 @@
 
 int getFreeInode();
 
-void createInode(struct inode* inode, int type);
+void createInode(struct inode* inode, int inum, int parent_inum, int type);
 
 void addInodeEntry(struct inode* inode, int Inum, char* name);
 
-int checkNnormalizePathname(char* pathname);
+int normPathname(char* pathname);
 
 int findInum(char* pathname, int curr_inum);
 
