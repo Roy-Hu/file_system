@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 
+// On success, return the file's inum
 int yfsOpen(int inode, char* pName, int *parent_inum) {
     TracePrintf( 1, "[SERVER][LOG] Open file\n");
 
@@ -56,6 +57,7 @@ int create(int inode, char* pName, int type) {
     }
 
     int parent_inum;
+    // finding the file name
     int file_inum = yfsOpen(inode, pName, &parent_inum);
     if (parent_inum == ERROR) return ERROR;
 

@@ -35,6 +35,7 @@ void setOpenFile(int iNum, int fd) {
     openedFiles[fd].isValid = true;
 }
 
+// check if file is opened given inum
 bool opened(int iNum) {
     int i;
     for (i = 0; i < MAX_OPEN_FILES; i++) {
@@ -44,6 +45,7 @@ bool opened(int iNum) {
     return false;
 }
 
+// find a new file descriptor, return -1 if not found
 int findNewFd() {
     int i;
     for (i = 0; i < MAX_OPEN_FILES; i++) {
@@ -53,6 +55,7 @@ int findNewFd() {
     return -1;
 }
 
+// init the opened file table
 void init() {
     int i;
     for (i = 0; i < MAX_OPEN_FILES; i++) {
@@ -95,9 +98,20 @@ int Open(char *pathname) {
     return res;
 }
 
-// int Close(int fd) {
-//     return 0;
-// }
+/* This request closes the open file specified by the file descriptor number fd . If fd is not the descriptor
+number of a file currently open in this process, this request returns ERROR; otherwise, it returns 0. */
+int Close(int fd) {
+    TracePrintf( 1, "[CLIENT][LOG] Close Request for fd: %d\n", fd);
+    if (fd < 0 || fd > MAX_OPEN_FILES || openedFiles[fd].isValid == false || isInit == false) {
+        TracePrintf( 1, "[CLIENT][ERR] Close: Not a valid fd: %d number!\n", fd);
+        return ERROR;
+    }
+    openedFiles[fd].isValid = false;
+    openedFiles[fd].iNum = 0;
+    openedFiles[fd].curPos = 0;
+    TracePrintf( 1, "[CLIENT][LOG] Close: Closed file successfully with fd: %d number!\n", fd);
+    return 0;
+}
 
 int Create(char *pathname) {
     if (!isInit) init();

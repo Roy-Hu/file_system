@@ -73,6 +73,8 @@ void setdirName(struct dir_entry* entry, char* filename) {
 void addInodeEntry(struct inode* inode, int inum, char* name) {
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     entry->inum = inum;
+    TracePrintf(1, "set entry with name %s and inum %d\n",name, inum);
+    // cannot use strcpy here since name is not necessarily null terminated
     setdirName(entry, name);
 
     int block_num = inode->size / BLOCKSIZE;
@@ -105,7 +107,7 @@ void addInodeEntry(struct inode* inode, int inum, char* name) {
 
 /* find the inum of last dir (before the last slash) */
 int findInum(char* pathname, int curr_inum){
-    TracePrintf( 1, "[SERVER][LOG] Find Inum for %s\n", pathname);
+    TracePrintf( 1, "[SERVER][LOG] Finding Inum for %s\n", pathname);
 
     // pathname should be valid (checked before calling the function)
     char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
@@ -175,7 +177,7 @@ int findInum(char* pathname, int curr_inum){
  */
 int retrieveDir(int inum, char* dirname) {
     TracePrintf( 1, "[SERVER][LOG] Retrieving Directory %s Inum\n", dirname);
-
+    // find the inum of parent dir
     struct inode* inode = findInode(inum);
     if (inode->type != INODE_DIRECTORY) {
         TracePrintf( 1, "[SERVER][ERR] %d Not a directory Inode\n", inum);
@@ -201,7 +203,9 @@ int retrieveDir(int inum, char* dirname) {
 
         // indirect entry to be implemented
         Block* blk = read_block(bNum);
-        struct dir_entry* dir = &((struct dir_entry*)blk->datum)[i % (BLOCKSIZE / sizeof(struct dir_entry))];
+        struct dir_entry* dir = &(((struct dir_entry*)blk->datum)[i % (BLOCKSIZE / sizeof(struct dir_entry))]);
+        if (dir != NULL)
+            TracePrintf(1, "Dir entry: %s\n", dir->name);
         if (dir != NULL && strncmp(dirname, dir->name, DIRNAMELEN) == 0) {
             // found a match
             if (idx >= NUM_DIRECT) free(indirectBlk);
@@ -211,11 +215,13 @@ int retrieveDir(int inum, char* dirname) {
             TracePrintf( 1, "[SERVER][LOG] Retrieving Directory %s inum: %d\n", dirname, (int)dir->inum);
             return (int)dir->inum;
         }
+        if (dir == NULL) TracePrintf( 1, "[SERVER][LOG] retrivedir: Directory is NULL!\n");
+       
 
         if (idx >= NUM_DIRECT) free(indirectBlk);
 
         free(blk);
     }
-
+    TracePrintf( 1, "[SERVER][LOG] retrivedir: Directory/file:%s does not exist!\n", dirname);
     return ERROR;
 }
