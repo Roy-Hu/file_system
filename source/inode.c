@@ -7,6 +7,11 @@
 #include <comp421/yalnix.h>
 #include <stdio.h>
 
+/* 
+ * Find free inodes in the inode list
+ * Return inum if found
+ * Return ERROR if not found
+ */
 int getFreeInode() {
     int i;
     for (i = 0; i < INODE_NUM; ++i) {
@@ -21,6 +26,10 @@ int getFreeInode() {
     return ERROR;
 }
 
+/*
+ * Create a new inode for directory/file
+ * 
+ */
 void createInode(struct inode* inode, int inum, int parent_inum, int type) {
     inode->type = type;
     inode->nlink = 0;
@@ -45,10 +54,26 @@ void createInode(struct inode* inode, int inum, int parent_inum, int type) {
     inode->indirect = getFreeBlock();
 }
 
+/* set the newly created directory/file name */
+void setdirName(struct dir_entry* entry, char* filename) {
+    memset(entry->name, '\0', DIRNAMELEN);
+    int len = strlen(filename);
+    if(len > DIRNAMELEN){
+        memcpy(entry->name, filename, DIRNAMELEN);
+    }
+    else {
+        memcpy(entry->name, filename, len);
+    }
+}
+/*
+ * Add a directory entry given the inum and name
+ *
+ * 
+ */
 void addInodeEntry(struct inode* inode, int inum, char* name) {
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     entry->inum = inum;
-    strcpy(entry->name, name);
+    setdirName(entry, name);
 
     int block_num = inode->size / BLOCKSIZE;
     int block_offset = inode->size % BLOCKSIZE;
@@ -74,7 +99,7 @@ void addInodeEntry(struct inode* inode, int inum, char* name) {
     }
 
     inode->size += sizeof(struct dir_entry);
-
+    // write the inode back to disk
     writeInode(inum,inode);
 }
 

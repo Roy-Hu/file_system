@@ -15,4 +15,6 @@ int findInum(char* pathname, int curr_inum);
 
 int retrieveDir(int inum, char* dirname);
 
+void setdirName(struct dir_entry* entry, char* filename);
+
 #endif

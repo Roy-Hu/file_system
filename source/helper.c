@@ -10,7 +10,7 @@
 /*
  * normalize the file name/dir name
  * e.g.: "/aa///a/./aa/" --> /aa/a/aa/
- *
+ * return 0 on success, Error else
  */
 int normPathname(char* pathname) {
     if (pathname == NULL) {

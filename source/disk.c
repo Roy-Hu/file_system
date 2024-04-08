@@ -14,6 +14,7 @@ int getInodeBlockNum(int Inum) {
     return Inum / INODE_PER_BLOCK + 1;
 }
 
+/* get a free block from the freeblock lists  */
 int getFreeBlock() {
     int i;
     for (i = 0; i < BLOCK_NUM; ++i) {
@@ -27,6 +28,7 @@ int getFreeBlock() {
     return ERROR;
 }
 
+/* write the inode back to disk */
 void writeInode(int Inum, struct inode* inode) {
     if (Inum <= 0 || Inum > INODE_NUM) {
         TracePrintf( 1, "[SERVER][ERR] Invalid Inum %d\n", Inum);
@@ -43,6 +45,7 @@ void writeInode(int Inum, struct inode* inode) {
     WriteSector(block_num, (void *) blk->datum);
 };
 
+/* find the inode given the inum */
 struct inode* findInode(int Inum) {
     if (Inum <= 0 || Inum > INODE_NUM) {
         TracePrintf( 1, "[SERVER][ERR] Invalid Inum %d\n", Inum);
@@ -61,7 +64,7 @@ struct inode* findInode(int Inum) {
     return inode;
 }
 
-/* read a block, save it in a struct and return a pointer to the block*/
+/* read a block, save it in a struct and return a pointer to the block */
 Block* read_block(int BNum) {
     Block* block = (Block*)malloc(sizeof(Block));
 

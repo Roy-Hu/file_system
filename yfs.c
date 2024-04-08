@@ -20,14 +20,14 @@ int msgHandler(Messgae* msg, int pid) {
             TracePrintf( 1, "[SERVER][LOG] Received Open request!\n");
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
+                TracePrintf( 1, "[SERVER][ERR] Open: Fail copy path name %s\n", pName);
             }
 
             int parent_inum;
             msg->data = yfsOpen(msg->data, pName, &parent_inum);
             res = msg->data;
             if (res == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
+                TracePrintf( 1, "[SERVER][ERR] Open: Fail to create file\n");
                 break;
             }
 
@@ -41,13 +41,13 @@ int msgHandler(Messgae* msg, int pid) {
 
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
+                TracePrintf( 1, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
             }
 
             msg->data = yfsCreate(msg->data, pName);
             res = msg->data;
             if (res == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
+                TracePrintf( 1, "[SERVER][ERR] Create: Fail to create file\n");
                 break;
             }
 
@@ -73,13 +73,13 @@ int msgHandler(Messgae* msg, int pid) {
 
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
+                TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
             }
 
             msg->data = yfsCreate(msg->data, pName);
             res = msg->data;
             if (res == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
+                TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail to create file\n");
                 break;
             }
 
