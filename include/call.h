@@ -3,8 +3,8 @@
 
 #include <stdbool.h>
 
-int create_file(int inode, char* pName, bool dir);
+int create(int inode, char* pName, int type);
 
-int touch(int inum, char* filename);
+// int touch(int inum, char* filename);
 
 #endif

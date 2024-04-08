@@ -38,11 +38,9 @@ int normPathname(char* pathname) {
         }
         // Skip "./"
         if (pathname[readPos] == '.' && (pathname[readPos + 1] == '/' || pathname[readPos + 1] == '\0')) {
-            if (pathname[readPos + 1] != '\0') {
-                readPos += 2; // Skip both characters
-            } else {
-                readPos++; // Only skip the dot if it's the last character
-            }
+            if (pathname[readPos + 1] != '\0') readPos += 2; // Skip both characters
+            else readPos++; // Only skip the dot if it's the last character
+
             continue;
         }
         // Copy the current character to its new position
@@ -59,14 +57,8 @@ int normPathname(char* pathname) {
 /* get the filename before the last char */
 char* getLastName(const char* path) {
     const char* lastSlash = strrchr(path, '/');
-    if (lastSlash == NULL) {
-        // No slash found, the path itself is a filename or an empty string.
-        return strdup(path); // Duplicate the whole path as the filename.
-    } else if (*(lastSlash + 1) == '\0') {
-        // The path ends with a slash. There is no filename to extract.
-        return strdup(""); // Return an empty string to indicate no filename.
-    } else {
-        // Extract and return the filename after the last slash.
-        return strdup(lastSlash + 1);
-    }
+    
+    if (lastSlash == NULL) return strdup(path);
+    else if (*(lastSlash + 1) == '\0')  return strdup("");
+    else return strdup(lastSlash + 1);
 }

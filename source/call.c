@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 
-int create_file(int inode, char* pName, bool dir) {
+int create(int inode, char* pName, int type) {
     TracePrintf( 1, "[SERVER][LOG] Create file\n");
     if (normPathname(pName) == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Cannot normalize path name %s\n", pName);
@@ -18,7 +18,6 @@ int create_file(int inode, char* pName, bool dir) {
     }
 
     char* lName = getLastName(pName);
-    // reply with ERROR?
     if (lName[0]== '\0') {
         TracePrintf( 1, "[SERVER][ERR] Empty last name!\n");
         return ERROR;
@@ -36,7 +35,6 @@ int create_file(int inode, char* pName, bool dir) {
     int file_inum = retrieveDir(parent_inum, lName);
     // create new file
     if (file_inum == ERROR) {
-
         file_inum = getFreeInode();
         if (file_inum == 0) {
             TracePrintf( 1, "[SERVER][ERR] No availiable inode!\n");
@@ -46,8 +44,7 @@ int create_file(int inode, char* pName, bool dir) {
         // create a new entry for the file
         struct inode* inode_entry = findInode(file_inum);
 
-        if (dir) createInode(inode_entry, file_inum, parent_inum, INODE_DIRECTORY);
-        else createInode(inode_entry, -1, -1, INODE_REGULAR);  
+        createInode(inode_entry, file_inum, parent_inum, type);
 
         struct inode* parent_node = findInode(parent_inum);
 
@@ -59,7 +56,7 @@ int create_file(int inode, char* pName, bool dir) {
     // already existed
     // more operations need to be added
     else {
-        if (dir) {
+        if (type == INODE_DIRECTORY) {
             TracePrintf( 1, "[SERVER][ERR] Dir %s already exists\n", lName);
             return ERROR;
         }

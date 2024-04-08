@@ -29,7 +29,7 @@ typedef struct openedFile {
 
 int Open(char *pathname) {
     TracePrintf( 1, "[CLIENT][LOG] Open Request for %s\n", pathname);
-    struct message* msg = (struct message*)malloc(sizeof(struct message));
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = OPEN;
     msg->type = (short) tp;
     msg->path_oldName = pathname;
@@ -44,7 +44,7 @@ int Open(char *pathname) {
 int Create(char *pathname) {
     TracePrintf( 1, "[CLIENT][LOG] Create Request for %s\n", pathname);
 
-    struct message* msg = (struct message*)malloc(sizeof(struct message));
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = CREATE;
     msg->type = (short) tp;
     msg->path_oldName = pathname;
@@ -88,7 +88,7 @@ int Create(char *pathname) {
 int MkDir(char *pathname) {
     TracePrintf( 1, "[CLIENT][LOG] MkDir Request for %s\n", pathname);
 
-    struct message* msg = (struct message*)malloc(sizeof(struct message));
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = MKDIR;
     msg->type = (short) tp;
     msg->path_oldName = pathname;

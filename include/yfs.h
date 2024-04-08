@@ -21,10 +21,8 @@ typedef enum {
     SHUTDOWN
 } OperationType;
 
-
-
 /* should be exactly 32 bytes */
-typedef struct message {
+typedef struct messgae {
     short type; /* message type */
     char *path_oldName; /* used interchangeable with oldname */
     int fd_len; /* used intercahgeable with len*/
@@ -35,9 +33,9 @@ typedef struct message {
     char *newname;
     short data; /* reply message/curr_dir */
 
-}messgae;
+} Messgae;
 
-int msgHandler(struct message* msg, int pid);
+int msgHandler(Messgae* msg, int pid);
 
 void init();
 

@@ -36,7 +36,6 @@ void createInode(struct inode* inode, int inum, int parent_inum, int type) {
 
         addInodeEntry(inode, inum, ".");
         addInodeEntry(inode, parent_inum, "..");
-
     } else {
         TracePrintf( 1, "[SERVER][LOG] Create Regular Inode\n");
 
@@ -55,17 +54,17 @@ void addInodeEntry(struct inode* inode, int inum, char* name) {
     int block_offset = inode->size % BLOCKSIZE;
 
     if (block_num < NUM_DIRECT) {
-        struct Block* blk = read_block(inode->direct[block_num]);
+        Block* blk = read_block(inode->direct[block_num]);
         memcpy(blk->datum + block_offset, entry, sizeof(struct dir_entry));
         WriteSector(inode->direct[block_num], (void *) blk->datum);
 
         free(blk);
     } else {
         int indirect_block_num = block_num - NUM_DIRECT;
-        struct Block* indirectBlk = read_block(inode->indirect);
+        Block* indirectBlk = read_block(inode->indirect);
         
         int* indirect = (int*)indirectBlk->datum;
-        struct Block* blk = read_block(indirect[indirect_block_num]);
+        Block* blk = read_block(indirect[indirect_block_num]);
 
         memcpy(blk->datum + block_offset, entry, sizeof(struct dir_entry));
         WriteSector(indirect[indirect_block_num], (void *) blk->datum);
@@ -94,16 +93,13 @@ int findInum(char* pathname, int curr_inum){
     char* end = pName; // Start scanning from the beginning of pName
     char* start = end; // Initialize start at the beginning of pName
 
-    if (pName[0] == '/') {
-        inum = ROOTINODE; // Start from the root directory for absolute paths
-    }
+    // Start from the root directory for absolute paths
+    if (pName[0] == '/') inum = ROOTINODE; 
 
     // Continue looping until the end of the string is reached
     while (*end != '\0') {
         // Advance 'end' to the next '/' or to the end of the string
-        while (*end != '/' && *end != '\0') {
-            end++;
-        }
+        while (*end != '/' && *end != '\0') end++;
 
         // Check if this is potentially the last segment and it doesn't end with a slash
         // and if so, exit the loop to disregard it
@@ -126,8 +122,7 @@ int findInum(char* pathname, int curr_inum){
             if (temp_inum == 0) {
                 TracePrintf( 1, "[SERVER][ERR] Found invalid Inum\n");
                 return ERROR;
-            }
-            else if (temp_inum == ERROR) {
+            } else if (temp_inum == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Fail to find Inum of a subdirectory\n");
                 return ERROR;
             }
@@ -138,13 +133,10 @@ int findInum(char* pathname, int curr_inum){
         }
 
         // If we're at the end of the string, break out of the loop
-        if (*end == '\0') {
-            break;
-        }
+        if (*end == '\0') break;
 
         // Otherwise, skip over the '/' and prepare for the next segment
-        end++;
-        start = end;
+        start = ++end;
     }
 
     TracePrintf( 1, "[SERVER][LOG] Find Inum %d for %s\n", inum, pathname);
@@ -170,11 +162,10 @@ int retrieveDir(int inum, char* dirname) {
         int idx = (i * sizeof(struct dir_entry)) / BLOCKSIZE;
 
         int bNum;
-        struct Block* indirectBlk;
+        Block* indirectBlk;
         // direct entry
-        if (idx < NUM_DIRECT) {
-            bNum = inode->direct[idx];
-        } else {
+        if (idx < NUM_DIRECT) bNum = inode->direct[idx];
+        else {
             bNum = inode->indirect;
 
             indirectBlk = read_block(bNum);
@@ -184,7 +175,7 @@ int retrieveDir(int inum, char* dirname) {
         }
 
         // indirect entry to be implemented
-        struct Block* blk = read_block(bNum);
+        Block* blk = read_block(bNum);
         struct dir_entry* dir = &((struct dir_entry*)blk->datum)[i % (BLOCKSIZE / sizeof(struct dir_entry))];
         if (dir != NULL && strncmp(dirname, dir->name, DIRNAMELEN) == 0) {
             // found a match

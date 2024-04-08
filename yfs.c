@@ -12,7 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 
-int msgHandler(struct message* msg, int pid) {
+int msgHandler(Messgae* msg, int pid) {
     OperationType myType = msg->type;
     int res;
     switch(myType) {
@@ -31,7 +31,7 @@ int msgHandler(struct message* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
             }
 
-            msg->data = create_file(msg->data, pName, false);
+            msg->data = create(msg->data, pName, INODE_REGULAR);
             res = msg->data;
             if (res == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
@@ -63,7 +63,7 @@ int msgHandler(struct message* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
             }
 
-            msg->data = create_file(msg->data, pName, true);
+            msg->data = create(msg->data, pName, INODE_DIRECTORY);
             res = msg->data;
             if (res == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
@@ -105,7 +105,7 @@ int msgHandler(struct message* msg, int pid) {
 void init() {
     TracePrintf( 1, "[SERVER][LOG] Start YFS Initialization\n");
     // read the first block to get the header
-    struct Block* block = read_block(1);
+    Block* block = read_block(1);
     struct fs_header* header = (struct fs_header*)malloc(sizeof(struct fs_header));
     memcpy(header, block->datum, sizeof(struct fs_header));
     INODE_NUM = header->num_inodes;
@@ -119,34 +119,38 @@ void init() {
     freeBlocks[1] = 1;
     int i = 0;
     // init inode list as free
-    for (i = 2; i < INODE_NUM + 1; ++i) {
-        freeInodes[i] = 0;
-    }
+    for (i = 2; i < INODE_NUM + 1; ++i) freeInodes[i] = 0;
+
     // init block list as free,skip 0 and 1
-    for (i = 2; i < BLOCK_NUM; ++i) {
-        freeBlocks[i] = 0;
-    } 
+    for (i = 2; i < BLOCK_NUM; ++i) freeBlocks[i] = 0;
+
     // set occupied blocks as 1 for inodes
     for (i = 2; i < ((INODE_NUM + 1) * INODESIZE) / BLOCKSIZE + 1; ++i) {
         freeBlocks[i] = 1;
     }
+
     // traverse into direct and indirect
     for (i = 1; i < INODE_NUM + 1; ++i) {
         struct inode* temp = findInode(i);
+
         if (temp->type != INODE_FREE) {
             freeInodes[i] = 1;
             int j;
             // check direct block
             for (j = 0; j < NUM_DIRECT; ++j) {
                 // !!! Check the condition
-                if ((j + 1) * BLOCKSIZE > temp->size && !(j * BLOCKSIZE < temp->size))
+                if ((j + 1) * BLOCKSIZE > temp->size && !(j * BLOCKSIZE < temp->size)) {
                     break;
+                }
+
                 freeBlocks[temp->direct[j]] = 1;
             }
+
             // check indirect block
             if (temp->size > NUM_DIRECT * BLOCKSIZE) {
-                struct Block* indirect = read_block(temp->indirect);
+                Block* indirect = read_block(temp->indirect);
                 int* array = (int*)indirect->datum;
+                
                 freeBlocks[temp->indirect] = 1;
                 for (; j <  (temp->size / BLOCKSIZE) + 1; ++j) {
                     int idx = j - NUM_DIRECT;
@@ -174,7 +178,7 @@ int main(int argc, char** argv) {
     // receiving messages
     while(1) {
         TracePrintf( 1, "[SERVER][LOG] Start receiving message\n");
-        struct message msg;
+        Messgae msg;
 
         int pid = Receive((void*)&msg);
         if (pid == ERROR) {
@@ -187,7 +191,7 @@ int main(int argc, char** argv) {
             Halt();
         }
 
-        int opt = msgHandler((struct message*)&msg, pid);
+        int opt = msgHandler((Messgae*)&msg, pid);
         if (opt == ERROR) return ERROR;
 
         msg.data = (short)opt;

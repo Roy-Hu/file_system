@@ -36,7 +36,7 @@ void writeInode(int Inum, struct inode* inode) {
     int block_num = getInodeBlockNum(Inum);
     int offset = (Inum % INODE_PER_BLOCK) * INODESIZE;
 
-    struct Block* blk = read_block(block_num);
+    Block* blk = read_block(block_num);
 
     memcpy(blk->datum + offset, inode, INODESIZE);
 
@@ -52,7 +52,7 @@ struct inode* findInode(int Inum) {
     int block_num = getInodeBlockNum(Inum);
     int offset = (Inum % INODE_PER_BLOCK) * INODESIZE;
 
-    struct Block* blk = read_block(block_num);
+    Block* blk = read_block(block_num);
     struct inode* inode = (struct inode*)malloc(sizeof(struct inode));
     
     memcpy(inode, blk->datum + offset, INODESIZE);
@@ -62,8 +62,8 @@ struct inode* findInode(int Inum) {
 }
 
 /* read a block, save it in a struct and return a pointer to the block*/
-struct Block* read_block(int BNum) {
-    struct Block* block = (struct Block*)malloc(sizeof(struct Block));
+Block* read_block(int BNum) {
+    Block* block = (Block*)malloc(sizeof(Block));
 
     int res = ReadSector(BNum, (void *) block->datum);
     if (res == ERROR) {

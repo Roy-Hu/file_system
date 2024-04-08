@@ -10,9 +10,9 @@
  * structure to keep data of blocks
  * 
 */
-typedef struct Block {
+typedef struct block {
     char datum[SECTORSIZE];
-}Block;
+} Block;
 
 
 int INODE_NUM;
@@ -34,7 +34,7 @@ struct inode* findInode(int Inum);
 
 int getFreeBlock();
 
-struct Block* read_block(int BNum);
+Block* read_block(int BNum);
 
 void writeInode(int iNum, struct inode* inode);
 
