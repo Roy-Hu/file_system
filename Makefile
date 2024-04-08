@@ -41,8 +41,8 @@ ALL = yfs iolib.a $(TEST)
 #	YFS server, and YFS_SRCS should  be a list of the corresponding
 #	source files that make up your serever.
 #
-YFS_OBJS = source/cache.o source/disk.o source/helper.o source/inode.o yfs.o
-YFS_SRCS = source/cache.c source/disk.c source/helper.c source/inode.c yfs.c
+YFS_OBJS = source/cache.o source/disk.o source/helper.o source/inode.o source/call.o yfs.o
+YFS_SRCS = source/cache.c source/disk.c source/helper.c source/inode.c source/call.c yfs.c
 
 #
 #	You must also modify the IOLIB_OBJS and IOLIB_SRCS definitions

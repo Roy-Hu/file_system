@@ -39,10 +39,6 @@ typedef struct message {
 
 int msgHandler(struct message* msg, int pid);
 
-int touch(int inum, char* filename);
-
 void init();
-
-int create_file(struct message* msg, int pid);
 
 #endif

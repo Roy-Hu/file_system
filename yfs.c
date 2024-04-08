@@ -3,137 +3,14 @@
 #include "inode.h"
 #include "disk.h"
 #include "helper.h"
+#include "call.h"
 
 #include <comp421/yalnix.h>
 #include <comp421/iolib.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-
-int create_file(struct message* msg, int pid) {
-    TracePrintf( 1, "[SERVER][LOG] Create file\n");
-    char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
-    // copy the path name from the calling process given pid
-    int res = CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN);
-    if (res == ERROR || checkNnormalizePathname(pName) == ERROR) {
-         TracePrintf( 1, "[SERVER][ERR] Cannot normalize filename %s\n", pName);
-    }
-    // get the current node from client's iolib
-    int curr_inode = msg->data;
-    
-    // found the inum of the last dir (before the last slash)
-    int inum = findInum(pName, curr_inode);
-    if (inum == ERROR) {
-        TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s, non-existing dir!\n", pName);
-        msg->data = ERROR;
-        return ERROR;
-    }
-
-    // TO-DO:
-    // 1. check the file name is created or not
-    // 2. if not:
-    //      find a free position in the block and allocated a new inode for the file
-    //      create a new dir_entry for that filename associate with that inum just
-    //      created and put the entry in the block of parent dir
-    // 3. if created:
-    char* filename = getLastFilename(pName);
-    // reply with ERROR?
-    if (filename[0 ]== '\0') {
-        TracePrintf( 1, "[SERVER][ERR] Empty file name!\n");
-        msg->data = ERROR;
-        return ERROR;
-    }
-    TracePrintf( 1, "[SERVER][LOG] Get file name %s\n", filename);
-
-    int file_inum = retrieveDir(inum, filename);
-    // create new file
-    if (file_inum == ERROR) {
-        int new_inum = touch(file_inum, filename);
-        if (new_inum == ERROR) {
-            TracePrintf( 1, "[SERVER][ERR] Fail creating file\n");
-            // reply error
-        }
-        struct inode* parent_node = findInode(inum);
-
-        // put the entry in the block of parent dir
-        addInodeEntry(parent_node, new_inum, filename);
-
-        TracePrintf( 1, "[SERVER][INF] Successfully created file %s with inum %d\n", filename, new_inum);
-
-        // adding to the opened_file table
-        msg->data = new_inum;
-    }
-    // already existed
-    // more operations need to be added
-    else {
-        struct inode* inode = findInode(file_inum);
-
-        if (inode->type != INODE_REGULAR) {
-            TracePrintf( 1, "[SERVER][ERR] %s's inode type is not REGULAR\n", filename);
-            return ERROR;
-        }
-
-        TracePrintf( 1, "[SERVER][LOG] File %s already exists\n", filename);
-
-        // truncates the size to 0 
-        inode->size = 0;
-
-        msg->data = file_inum;
-    }
-    
-    return 0;
-}
-
-/* create a file during the */
-int touch(int inum, char* filename) {
-    (void) inum;
-    (void) filename;
-    TracePrintf( 1, "[SERVER][LOG] Touch a new file for %s\n", filename);
-    int new_inum = 0;
-    // allocate a new inode number
-    int i = 1;
-    for (; i < INODE_NUM + 1; ++i) {
-        if (freeInodes[i] == 0) {
-            new_inum = i;
-            freeInodes[i] = 1;
-            break;
-        }
-    }
-    if (new_inum == 0) {
-        TracePrintf( 1, "[SERVER][ERR] No availiable inode!\n");
-        return ERROR;
-    }
-    // create a new entry for the file
-    struct inode* inode_entry = findInode(new_inum);
-    createInode(inode_entry, INODE_REGULAR);
-
-    // Why reuse++?
-    // inode_entry->reuse++;
-
-
-    // create a new dir
-
-    // struct dir_entry dir;
-    // dir.inum = new_inum;
-
-    // memset(&entry.name, '\0', DIRNAMELEN);
-    // int filenameLen = strlen(filename);
-    // if(filenameLen > DIRNAMELEN){
-	// 	 memcpy(&entry.name, filename, DIRNAMELEN);
-	// }
-    // else {
-    //     memcpy(&entry.name, filename, filenameLen);
-    // }
-
-    // adding new dir to parent inode
-
-
-    return new_inum;
-
-
-
-}
 
 int msgHandler(struct message* msg, int pid) {
     OperationType myType = msg->type;
@@ -148,8 +25,19 @@ int msgHandler(struct message* msg, int pid) {
         }
         case CREATE: {
             TracePrintf( 1, "[SERVER][LOG] Received Create request!\n");
-            create_file(msg, pid);
+
+            char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
+            if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Fail copy path name %s\n", pName);
+            }
+
+            msg->data = create_file(msg->data, pName);
             res = msg->data;
+            if (res == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Fail to create file\n");
+                break;
+            }
+
             break;
         }
         case READ: {
