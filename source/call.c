@@ -28,13 +28,13 @@ int yfsOpen(int inode, char* pName, int *parent_inum) {
     TracePrintf( 1, "[SERVER][LOG] Get last name %s\n", lName);
 
     // found the inum of the last dir (before the last slash)
-    *parent_inum = findInum(pName, inode);
+    *parent_inum = inumFind(pName, inode);
     if (*parent_inum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s, non-existing dir!\n", pName);
         return ERROR;
     }
 
-    return retrieve(*parent_inum, lName, INODE_REGULAR);
+    return inumRetrieve(*parent_inum, lName, INODE_REGULAR);
 }
 
 int yfsCreate(char* pName) {
@@ -121,10 +121,10 @@ int create(char* pName, int type) {
         }
 
         // create a new entry for the file
-        createInode(file_inum, parent_inum, type);
+        inodeCreate(file_inum, parent_inum, type);
 
         // put the entry in the block of parent dir
-        addInodeEntry(parent_inum, file_inum, lName);
+        inodeAddEntry(parent_inum, file_inum, lName);
 
         TracePrintf( 1, "[SERVER][INF] Successfully create %s with inum %d\n", lName, file_inum);
     }
@@ -166,7 +166,7 @@ int create(char* pName, int type) {
 //     }
 //     // create a new entry for the file
 //     struct inode* inode_entry = findInode(new_inum);
-//     createInode(inode_entry, INODE_REGULAR, false);
+//     inodeCreate(inode_entry, INODE_REGULAR, false);
 
 //     // Why reuse++?
 //     // inode_entry->reuse++;

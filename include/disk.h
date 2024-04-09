@@ -32,4 +32,6 @@ int getInodeBlockNum(int Inum);
 
 int getFreeBlock();
 
+int getFreeInode();
+
 #endif

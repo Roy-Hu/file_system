@@ -11,21 +11,14 @@
 #define FILEREAD 1
 #define DIRUPDATE 2
 
+void inodeCreate(int inum, int parent_inum, int type);
 
-int getFreeInode();
+void inodeAddEntry(int parent_inum, int file_inum, char *name);
 
-void createInode(int inum, int parent_inum, int type);
+int inumFind(char *pathname, int curr_inum);
 
-void addInodeEntry(int parent_inum, int file_inum, char* name);
+int inumRetrieve(int inum, char *dirname, int type);
 
-int normPathname(char* pathname);
-
-int findInum(char* pathname, int curr_inum);
-
-int retrieve(int inum, char* dirname, int type);
-
-void setdirName(struct dir_entry* entry, char* filename);
-
-int inodeReadWrite(int inum, void* buf, int curpos, int size, int type);
+int inodeReadWrite(int inum, void *buf, int curpos, int size, int type);
 
 #endif

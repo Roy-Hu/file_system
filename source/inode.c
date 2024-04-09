@@ -8,30 +8,11 @@
 #include <comp421/yalnix.h>
 #include <stdio.h>
 
-/* 
- * Find free inodes in the inode list
- * Return inum if found
- * Return ERROR if not found
- */
-int getFreeInode() {
-    int i;
-    for (i = 0; i < INODE_NUM; ++i) {
-        if (freeInodes[i] == 0) {
-            freeInodes[i] = 1;
-            return i;
-        }
-    }
-
-    TracePrintf( 1, "[SERVER][ERR] No free inode available\n");
-
-    return ERROR;
-}
-
 /*
  * Create a new inode for directory/file
  * 
  */
-void createInode(int inum, int parent_inum, int type) {
+void inodeCreate(int inum, int parent_inum, int type) {
     struct inode* inode = findInode(inum);
 
     inode->type = type;
@@ -46,8 +27,8 @@ void createInode(int inum, int parent_inum, int type) {
             return;
         }
 
-        addInodeEntry(inum, inum, ".");
-        addInodeEntry(inum, parent_inum, "..");
+        inodeAddEntry(inum, inum, ".");
+        inodeAddEntry(inum, parent_inum, "..");
     } else {
         TracePrintf( 1, "[SERVER][LOG] Create Regular Inode\n");
 
@@ -58,23 +39,6 @@ void createInode(int inum, int parent_inum, int type) {
 
     writeInode(inum, inode);
 }
-
-/* set the newly created directory/file name */
-void setdirName(struct dir_entry* entry, char* filename) {
-    memset(entry->name, '\0', DIRNAMELEN);
-    int len = strlen(filename);
-    if(len > DIRNAMELEN){
-        memcpy(entry->name, filename, DIRNAMELEN);
-    }
-    else {
-        memcpy(entry->name, filename, len);
-    }
-}
-/*
- * Add a directory entry given the inum and name
- *
- * 
- */
 
 int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
     struct inode* inode = findInode(inum);
@@ -98,17 +62,17 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
         int block_offset = curpos % BLOCKSIZE;
         TracePrintf( 1, "[SERVER][TRC] curpos %d, Block num %d, Block offset %d\n", curpos, block_num, block_offset);
 
-        int write_size = BLOCKSIZE - block_offset;
-        if (write_size > size) write_size = size;
+        int len = BLOCKSIZE - block_offset;
+        if (len > size) len = size;
 
 
         if (block_num < NUM_DIRECT) {
             Block* blk = read_block(inode->direct[block_num]);
 
             if (type == FILEREAD) {
-                memcpy(buf, blk->datum + block_offset, write_size);
+                memcpy(buf, blk->datum + block_offset, len);
             } else if (type == FILEWRITE || type == DIRUPDATE) {
-                memcpy(blk->datum + block_offset, buf, write_size);
+                memcpy(blk->datum + block_offset, buf, len);
                 WriteSector(inode->direct[block_num], (void *) blk->datum);
             } else {
                 TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
@@ -124,9 +88,9 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
             Block* blk = read_block(indirect[indirect_block_num]);
 
             if (type == FILEREAD) {
-                memcpy(buf, blk->datum + block_offset, write_size);
+                memcpy(buf, blk->datum + block_offset, len);
             } else if (type == FILEWRITE || type == DIRUPDATE) {
-                memcpy(blk->datum + block_offset, buf, write_size);
+                memcpy(blk->datum + block_offset, buf, len);
                 WriteSector(indirect[indirect_block_num], (void *) blk->datum);
             } else {
                 TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
@@ -137,12 +101,12 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
             free(blk);
         }
 
-        totalbyte += write_size;
-        TracePrintf( 1, "[SERVER][TRC] Write %d to inode %d block %d\n", write_size, inum, block_num);
+        totalbyte += len;
+        TracePrintf( 1, "[SERVER][TRC] Write %d to inode %d block %d\n", len, inum, block_num);
 
-        curpos += write_size;
-        buf += write_size;
-        size -= write_size;
+        curpos += len;
+        buf += len;
+        size -= len;
 
         if (size > 0) {
             printf("[SERVER][WAR] Buf data write through different blocks, be careful\n");
@@ -156,7 +120,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
     return totalbyte;
 }
 
-void addInodeEntry(int parent_inum, int file_inum, char* name) {
+void inodeAddEntry(int parent_inum, int file_inum, char* name) {
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     entry->inum = file_inum;
     // cannot use strcpy here since name is not necessarily null terminated
@@ -166,7 +130,7 @@ void addInodeEntry(int parent_inum, int file_inum, char* name) {
 }
 
 /* find the inum of last dir (before the last slash) */
-int findInum(char* pathname, int inum){
+int inumFind(char* pathname, int inum){
     TracePrintf( 1, "[SERVER][LOG] Finding Inum for %s\n", pathname);
 
     // pathname should be valid (checked before calling the function)
@@ -176,7 +140,7 @@ int findInum(char* pathname, int inum){
     if (pName[0] == '/') inum = ROOTINODE; 
 
     if (inum <= 0 || inum > INODE_NUM) {
-        TracePrintf( 1, "[SERVER][ERR] findInum: Invalid Inum %d\n", inum);
+        TracePrintf( 1, "[SERVER][ERR] inumFind: Invalid Inum %d\n", inum);
         return ERROR;
     }
 
@@ -209,7 +173,7 @@ int findInum(char* pathname, int inum){
             dir_name[len] = '\0'; // Null-terminate the directory name
 
             // Process the directory name stored in dir_name here
-            int temp_inum = retrieve(inum, dir_name, INODE_DIRECTORY);
+            int temp_inum = inumRetrieve(inum, dir_name, INODE_DIRECTORY);
             if (temp_inum == 0) {
                 TracePrintf( 1, "[SERVER][ERR] Found invalid Inum\n");
                 return ERROR;
@@ -235,15 +199,15 @@ int findInum(char* pathname, int inum){
 }
 
 /* 
- * retrieve the directory inum give the dir/filename
+ * inumRetrieve the directory inum give the dir/filename
  * return ERROR if not found
  * Remember to add indirect check...
  */
-int retrieve(int inum, char* name, int type) {
+int inumRetrieve(int inum, char* name, int type) {
     TracePrintf( 1, "[SERVER][LOG] Retrieving %s at parent Inum %d\n", name, inum);
     // find the inum of parent dir
     if (inum <= 0 || inum > INODE_NUM) {
-        TracePrintf( 1, "[SERVER][ERR] retrieve: Invalid Inum %d\n", inum);
+        TracePrintf( 1, "[SERVER][ERR] inumRetrieve: Invalid Inum %d\n", inum);
         return ERROR;
     }
     

@@ -27,3 +27,22 @@ int getFreeBlock() {
     TracePrintf( 1, "[SERVER][ERR] No free block available\n");
     return ERROR;
 }
+
+/* 
+ * Find free inodes in the inode list
+ * Return inum if found
+ * Return ERROR if not found
+ */
+int getFreeInode() {
+    int i;
+    for (i = 0; i < INODE_NUM; ++i) {
+        if (freeInodes[i] == 0) {
+            freeInodes[i] = 1;
+            return i;
+        }
+    }
+
+    TracePrintf( 1, "[SERVER][ERR] No free inode available\n");
+
+    return ERROR;
+}

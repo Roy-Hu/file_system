@@ -62,3 +62,22 @@ char* getLastName(const char* path) {
     else if (*(lastSlash + 1) == '\0')  return strdup("");
     else return strdup(lastSlash + 1);
 }
+
+
+/*
+ * Add a directory entry given the inum and name
+ *
+ * 
+ */
+
+/* set the newly created directory/file name */
+void setdirName(struct dir_entry* entry, char* filename) {
+    memset(entry->name, '\0', DIRNAMELEN);
+    int len = strlen(filename);
+    if(len > DIRNAMELEN){
+        memcpy(entry->name, filename, DIRNAMELEN);
+    }
+    else {
+        memcpy(entry->name, filename, len);
+    }
+}
