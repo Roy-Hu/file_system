@@ -23,16 +23,17 @@ typedef enum {
 
 /* should be exactly 32 bytes */
 typedef struct messgae {
-    short type; /* message type */
-    char *path_oldName; /* used interchangeable with oldname */
-    int curpos_len; /* used intercahgeable with len*/
-    void *buff;
-    int whence_inum;
-    int offset_size; /* used interchangeable with size */
-    struct Stat *statbuf;
-    char *newname;
-    short data; /* reply message/curr_dir */
+    short type; 
+    short reply;
 
+    int size;
+    int inum;
+    int pos;
+
+    void* bufPtr;
+    char* pathnamePtr;
+
+    char padding[8];
 } Messgae;
 
 int msgHandler(Messgae* msg, int pid);

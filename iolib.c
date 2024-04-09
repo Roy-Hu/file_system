@@ -17,7 +17,7 @@ int curInode = ROOTINODE;
  * that open file.
  */
 typedef struct openedFile {
-    int iNum;
+    int inum;
     int curPos;
     bool isValid; /* 1: for curr entry is valid, 0 otherwise */
 } OpenedFile;
@@ -29,17 +29,17 @@ OpenedFile openedFiles[MAX_OPEN_FILES];
 
 bool isInit = false;
 
-void setOpenFile(int iNum, int fd) {
-    openedFiles[fd].iNum = iNum;
-    openedFiles[fd].curPos = 0;
-    openedFiles[fd].isValid = true;
+void setOpenFile(int fd, int inum, int pos, bool valid) {
+    openedFiles[fd].inum = inum;
+    openedFiles[fd].curPos = pos;
+    openedFiles[fd].isValid = valid;
 }
 
 // check if file is opened given inum
-bool opened(int iNum) {
+bool opened(int inum) {
     int i;
     for (i = 0; i < MAX_OPEN_FILES; i++) {
-        if (openedFiles[i].iNum == iNum) return true;
+        if (openedFiles[i].inum == inum) return true;
     }
 
     return false;
@@ -73,10 +73,11 @@ int Open(char *pathname) {
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = OPEN;
     msg->type = (short) tp;
-    msg->path_oldName = pathname;
+    msg->pathnamePtr = pathname;
 
     Send((void*)msg, -FILE_SERVER);
-    int res = (int)msg->data;
+
+    short res = msg->reply;
     if (res != ERROR) {
         int fd = findNewFd();
         if (fd == -1) {
@@ -87,12 +88,15 @@ int Open(char *pathname) {
 
         TracePrintf( 1, "[CLIENT][LOG] Open file inum %d, fd %d: \n", res, fd);
 
-        setOpenFile(res, fd);
+        setOpenFile(fd, msg->inum, 0, true);
+
         free(msg);
+
         return fd;
     } else {
         TracePrintf( 1, "[CLIENT][ERR] Fail to open file\n");
         free(msg);
+
         return res;
     }
     free(msg);
@@ -108,9 +112,9 @@ int Close(int fd) {
         TracePrintf( 1, "[CLIENT][ERR] Close: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
-    openedFiles[fd].isValid = false;
-    openedFiles[fd].iNum = 0;
-    openedFiles[fd].curPos = 0;
+
+    setOpenFile(fd, 0, 0, false);
+
     TracePrintf( 1, "[CLIENT][LOG] Close: Closed file successfully with fd: %d number!\n", fd);
     return 0;
 }
@@ -123,12 +127,12 @@ int Create(char *pathname) {
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = CREATE;
     msg->type = (short) tp;
-    msg->path_oldName = pathname;
+    msg->pathnamePtr = pathname;
 
     Send((void*)msg, -FILE_SERVER);
-    int res = (int)msg->data;
-    if (res != ERROR) {
+    short res = msg->reply;
 
+    if (res != ERROR) {
         int fd = findNewFd();
         if (fd == -1) {
             TracePrintf( 1, "[CLIENT][ERR] No more file can be opened\n");
@@ -137,11 +141,14 @@ int Create(char *pathname) {
 
         TracePrintf( 1, "[CLIENT][LOG] Created file inum %d, fd %d: \n", res, fd);
 
-        setOpenFile(res, fd);
+        setOpenFile(fd, msg->inum, 0, true);
 
+        free(msg);
         return fd;
     } else {
         TracePrintf( 1, "[CLIENT][ERR] Fail to create file\n");
+
+        free(msg);
         return res;
     }
 }
@@ -157,17 +164,20 @@ int Write(int fd, void *buf, int size) {
         TracePrintf( 1, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
-    int inum = openedFiles[fd].iNum;
+
+    int inum = openedFiles[fd].inum;
     int curpos = openedFiles[fd].curPos;
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = WRITE;
     msg->type = (short) tp;
-    msg->offset_size = size;
-    msg->buff = buf;
-    msg->curpos_len = curpos;
-    msg->whence_inum = inum;
+    msg->size = size;
+    msg->bufPtr = buf;
+    msg->pos = curpos;
+    msg->inum = inum;
+
     Send((void*)msg, -FILE_SERVER);
+
     return 0;
 }
 
@@ -197,10 +207,10 @@ int MkDir(char *pathname) {
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = MKDIR;
     msg->type = (short) tp;
-    msg->path_oldName = pathname;
+    msg->pathnamePtr = pathname;
 
     Send((void*)msg, -FILE_SERVER);
-    int res = (int)msg->data;
+    int res = (int)msg->reply;
     
     TracePrintf( 1, "[CLIENT][LOG] Created file return %d: \n", res);
 

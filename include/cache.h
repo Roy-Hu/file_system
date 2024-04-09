@@ -7,6 +7,6 @@ struct inode* findInode(int inum);
 
 Block* read_block(int bNum);
 
-void writeInode(int iNum, struct inode* inode);
+void writeInode(int inum, struct inode* inode);
 
 #endif

@@ -14,19 +14,20 @@
 
 int msgHandler(Messgae* msg, int pid) {
     OperationType myType = msg->type;
-    int res;
+    int res = 0;
+
     switch(myType) {
         case OPEN: {
             TracePrintf( 1, "[SERVER][LOG] Received Open request!\n");
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
-            if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
+            if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Open: Fail to copy path name %s\n", pName);
             }
 
             int parent_inum;
-            msg->data = yfsOpen(msg->data, pName, &parent_inum);
-            res = msg->data;
-            if (res == ERROR) {
+            msg->inum = yfsOpen(msg->reply, pName, &parent_inum);
+            if (msg->inum == ERROR) {
+                msg->reply = ERROR;
                 TracePrintf( 1, "[SERVER][ERR] Open: Fail to open file\n");
                 break;
             }
@@ -37,13 +38,13 @@ int msgHandler(Messgae* msg, int pid) {
             TracePrintf( 1, "[SERVER][LOG] Received Create request!\n");
 
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
-            if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
+            if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
             }
 
-            msg->data = yfsCreate(pName);
-            res = msg->data;
-            if (res == ERROR) {
+            msg->inum = yfsCreate(pName);
+            if (msg->inum == ERROR) {
+                msg->reply = ERROR;
                 TracePrintf( 1, "[SERVER][ERR] Create: Fail to create file\n");
                 break;
             }
@@ -70,14 +71,14 @@ int msgHandler(Messgae* msg, int pid) {
             TracePrintf( 1, "[SERVER][LOG] Received Mkdir request!\n");
 
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
-            if (CopyFrom(pid, (void*)pName, msg->path_oldName, MAXPATHNAMELEN) == ERROR) {
+            if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
             }
 
-            msg->data = yfsCreate(pName);
-            res = msg->data;
-            if (res == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail to create file\n");
+            msg->inum = yfsCreate(pName);
+            if (msg->inum == ERROR) {
+                msg->reply = ERROR;
+                TracePrintf( 1, "[SERVER][ERR] Create: Fail to create dir\n");
                 break;
             }
 
@@ -102,6 +103,7 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
     }
+
     return res;
 }
 
@@ -204,7 +206,6 @@ int main(int argc, char** argv) {
         int opt = msgHandler((Messgae*)&msg, pid);
         if (opt == ERROR) return ERROR;
 
-        msg.data = (short)opt;
         Reply((void*)&msg, pid);
     }
 
