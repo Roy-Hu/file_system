@@ -34,13 +34,13 @@ int yfsOpen(int inode, char* pName, int *parent_inum) {
         return ERROR;
     }
 
-    return retrieveDir(*parent_inum, lName);
+    return retrieve(*parent_inum, lName, INODE_REGULAR);
 }
 
-int yfsCreate(int inode, char* pName) {
+int yfsCreate(char* pName) {
     TracePrintf( 1, "[SERVER][LOG] Create file\n");
 
-    return create(inode, pName, INODE_REGULAR);
+    return create(pName, INODE_REGULAR);
 }
 
 /* return the bytes written to the file*/
@@ -85,13 +85,13 @@ char* findNextWritingPos(int curpos, struct inode* node) {
     return res;
 }
 
-int yfsMkdir(int inode, char* pName) {
+int yfsMkdir(char* pName) {
     TracePrintf( 1, "[SERVER][LOG] Create Directory\n");
 
-    return create(inode, pName, INODE_DIRECTORY);
+    return create(pName, INODE_DIRECTORY);
 }
 
-int create(int inum, char* pName, int type) {
+int create(char* pName, int type) {
     char* lName = getLastName(pName);
     if (lName[0]== '\0') {
         TracePrintf( 1, "[SERVER][ERR] Empty last name!\n");
@@ -100,7 +100,7 @@ int create(int inum, char* pName, int type) {
 
     int parent_inum;
     // finding the file name
-    int file_inum = yfsOpen(inum, pName, &parent_inum);
+    int file_inum = yfsOpen(INVALID_INUM, pName, &parent_inum);
     if (parent_inum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s\n", pName);
         return ERROR;
@@ -133,7 +133,7 @@ int create(int inum, char* pName, int type) {
         struct inode* inode = findInode(file_inum);
 
         if (inode->type != INODE_REGULAR) {
-            TracePrintf( 1, "[SERVER][ERR] %s's inode type is not REGULAR\n", lName);
+            TracePrintf( 1, "[SERVER][ERR] %s's inode %d type is not REGULAR\n", lName, file_inum);
             return ERROR;
         }
 

@@ -41,7 +41,7 @@ int msgHandler(Messgae* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
             }
 
-            msg->data = yfsCreate(msg->data, pName);
+            msg->data = yfsCreate(pName);
             res = msg->data;
             if (res == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Create: Fail to create file\n");
@@ -74,7 +74,7 @@ int msgHandler(Messgae* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
             }
 
-            msg->data = yfsCreate(msg->data, pName);
+            msg->data = yfsCreate(pName);
             res = msg->data;
             if (res == ERROR) {
                 TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail to create file\n");

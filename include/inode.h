@@ -5,6 +5,8 @@
 
 #define END_POS -1
 
+#define INVALID_INUM 0
+
 int getFreeInode();
 
 void createInode(int inum, int parent_inum, int type);
@@ -15,7 +17,7 @@ int normPathname(char* pathname);
 
 int findInum(char* pathname, int curr_inum);
 
-int retrieveDir(int inum, char* dirname);
+int retrieve(int inum, char* dirname, int type);
 
 void setdirName(struct dir_entry* entry, char* filename);
 

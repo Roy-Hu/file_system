@@ -10,7 +10,7 @@
 /* write the inode back to disk */
 void writeInode(int inum, struct inode* inode) {
     if (inum <= 0 || inum > INODE_NUM) {
-        TracePrintf( 1, "[SERVER][ERR] Invalid inum %d\n", inum);
+        TracePrintf( 1, "[SERVER][ERR] writeInode: Invalid inum %d\n", inum);
         return;
     }
 
@@ -31,7 +31,7 @@ void writeInode(int inum, struct inode* inode) {
 /* find the inode given the inum */
 struct inode* findInode(int inum) {
     if (inum <= 0 || inum > INODE_NUM) {
-        TracePrintf( 1, "[SERVER][ERR] Invalid inum %d\n", inum);
+        TracePrintf( 1, "[SERVER][ERR] findInode: Invalid inum %d\n", inum);
         return NULL;
     }
     
