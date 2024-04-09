@@ -3,7 +3,6 @@
 2. Finish handling functions to deal with requests send by the client (kernel) (request sending and receiving work!)
 3. Finish each functions in iolib.c
     - ### in progress
-        - Write
     - ### Need to be done:
         - Seek
         - Link
@@ -18,6 +17,8 @@
         - Create
         - Close
         - Open
+        - Write
+        - Read
 4. LRU cache
 
 ### use the bash for testing
