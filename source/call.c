@@ -1,7 +1,7 @@
 #include "call.h"
-#include "helper.h"
 #include "inode.h"
 #include "cache.h"
+#include "helper.h"
 
 #include <comp421/yalnix.h>
 
@@ -45,22 +45,25 @@ int yfsCreate(int inode, char* pName) {
 
 /* return the bytes written to the file*/
 int yfsWrite(int inum, void* buf, int curpos, int size) {
-    struct inode* node = findInode(inum);
-    // if (node->size < size) {
-    //     // need functions enlarge the file to hold the size
-    //     continue;
+    TracePrintf( 1, "[SERVER][LOG] Write %d byte at inum %d, pos %d\n", size, inum, curpos);
+
+    // struct inode* node = findInode(inum);
+    // // if (node->size < size) {
+    // //     // need functions enlarge the file to hold the size
+    // //     continue;
+    // // }
+    // // position in the buffer to write
+    // int pos = 0;
+    // // size written
+    // int sz = 0;
+    // for (; pos < size; pos+= sz) {
+    //     // write position
+    //     char* start = findNextWritingPos(curpos + sz, node);
+    //     if (size - pos < BLOCKSIZE - (curpos + pos) % BLOCKSIZE) sz = size - pos;
+    //     memcpy(start,buf + pos , sz);
     // }
-    // position in the buffer to write
-    int pos = 0;
-    // size written
-    int sz = 0;
-    for (; pos < size; pos+= sz) {
-        // write position
-        char* start = findNextWritingPos(curpos + sz, node);
-        if (size - pos < BLOCKSIZE - (curpos + pos) % BLOCKSIZE) sz = size - pos;
-        memcpy(start,buf + pos , sz);
-    }
-    return 0;
+
+    return inodeWrite(inum, buf, curpos, size);
 }
 
 /* find the next writing position in the file of one block */
@@ -98,7 +101,10 @@ int create(int inum, char* pName, int type) {
     int parent_inum;
     // finding the file name
     int file_inum = yfsOpen(inum, pName, &parent_inum);
-    if (parent_inum == ERROR) return ERROR;
+    if (parent_inum == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s\n", pName);
+        return ERROR;
+    }
 
     // create new file
     if (file_inum == ERROR) {

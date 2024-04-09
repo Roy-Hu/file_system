@@ -1,5 +1,6 @@
 #include "inode.h"
 #include "cache.h"
+#include "helper.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -74,44 +75,73 @@ void setdirName(struct dir_entry* entry, char* filename) {
  *
  * 
  */
-void addInodeEntry(int parent_inum, int file_inum, char* name) {
-    struct inode* parent_node = findInode(parent_inum);
 
+int inodeWrite(int inum, void* buf, int curpos, int size) {
+    struct inode* inode = findInode(inum);
+    if (inode == NULL) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        return ERROR;
+    }
+
+    if (curpos == END_POS) curpos = inode->size;
+
+    int totalWrite = 0;
+    while (size > 0) {
+        int block_num = curpos / BLOCKSIZE;
+        int block_offset = curpos % BLOCKSIZE;
+        TracePrintf( 1, "[SERVER][TRC] curpos %d, Block num %d, Block offset %d\n", curpos, block_num, block_offset);
+
+        int write_size = BLOCKSIZE - block_offset;
+        if (write_size > size) write_size = size;
+        totalWrite += size;
+
+        TracePrintf( 1, "Write %d to block %d\n", write_size, block_num);
+
+        if (block_num < NUM_DIRECT) {
+            Block* blk = read_block(inode->direct[block_num]);
+
+            memcpy(blk->datum + block_offset, buf, write_size);
+            WriteSector(inode->direct[block_num], (void *) blk->datum);
+
+            free(blk);
+        } else {
+            int indirect_block_num = block_num - NUM_DIRECT;
+            Block* indirectBlk = read_block(inode->indirect);
+            
+            int* indirect = (int*)indirectBlk->datum;
+            Block* blk = read_block(indirect[indirect_block_num]);
+
+            memcpy(blk->datum + block_offset, buf, write_size);
+            WriteSector(indirect[indirect_block_num], (void *) blk->datum);
+
+            free(indirectBlk);
+            free(blk);
+        }
+
+        curpos += write_size;
+        buf += write_size;
+        size -= write_size;
+
+        if (size > 0) {
+            printf("[SERVER][WAR] Buf data write through different blocks, be careful\n");
+        }
+    }
+
+    if (curpos > inode->size) inode->size = curpos;
+
+    writeInode(inum, inode);
+
+    return totalWrite;
+}
+
+void addInodeEntry(int parent_inum, int file_inum, char* name) {
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     entry->inum = file_inum;
     TracePrintf(1, "set entry with name %s and inum %d\n",name, parent_inum);
     // cannot use strcpy here since name is not necessarily null terminated
     setdirName(entry, name);
 
-    int block_num = parent_node->size / BLOCKSIZE;
-    int block_offset = parent_node->size % BLOCKSIZE;
-    TracePrintf( 1, "[SERVER][TRC] inode size %d, Block num %d, Block offset %d\n", parent_node->size, block_num, block_offset);
-
-    if (block_num < NUM_DIRECT) {
-        Block* blk = read_block(parent_node->direct[block_num]);
-        memcpy(blk->datum + block_offset, entry, sizeof(struct dir_entry));
-        WriteSector(parent_node->direct[block_num], (void *) blk->datum);
-
-        TracePrintf( 1, "Write %s to block %d\n", name, block_num);
-        
-        free(blk);
-    } else {
-        int indirect_block_num = block_num - NUM_DIRECT;
-        Block* indirectBlk = read_block(parent_node->indirect);
-        
-        int* indirect = (int*)indirectBlk->datum;
-        Block* blk = read_block(indirect[indirect_block_num]);
-
-        memcpy(blk->datum + block_offset, entry, sizeof(struct dir_entry));
-        WriteSector(indirect[indirect_block_num], (void *) blk->datum);
-
-        free(indirectBlk);
-        free(blk);
-    }
-
-    parent_node->size += sizeof(struct dir_entry);
-    // write the inode back to disk
-    writeInode(parent_inum, parent_node);
+    inodeWrite(parent_inum, (void*)entry, END_POS, sizeof(struct dir_entry));
 }
 
 /* find the inum of last dir (before the last slash) */
@@ -215,7 +245,7 @@ int retrieveDir(int inum, char* dirname) {
         Block* blk = read_block(bNum);
         struct dir_entry* dir = &(((struct dir_entry*)blk->datum)[i % (BLOCKSIZE / sizeof(struct dir_entry))]);
             
-         TracePrintf( 1, "[SERVER][TRC] Found Directory %s\n", dir->name);
+        TracePrintf( 1, "[SERVER][TRC] Found Directory %s\n", dir->name);
         if (dir != NULL && strncmp(dirname, dir->name, DIRNAMELEN) == 0) {
             // found a match
             if (idx >= NUM_DIRECT) free(indirectBlk);
@@ -225,9 +255,9 @@ int retrieveDir(int inum, char* dirname) {
             TracePrintf( 1, "[SERVER][LOG] Retrieving Directory %s inum: %d\n", dirname, (int)dir->inum);
             return (int)dir->inum;
         }
+        
         if (dir == NULL) TracePrintf( 1, "[SERVER][LOG] retrivedir: Directory is NULL!\n");
        
-
         if (idx >= NUM_DIRECT) free(indirectBlk);
 
         free(blk);
