@@ -1,7 +1,7 @@
 #include "call.h"
 #include "helper.h"
 #include "inode.h"
-#include "disk.h"
+#include "cache.h"
 
 #include <comp421/yalnix.h>
 #include <comp421/filesystem.h>
@@ -49,7 +49,7 @@ int yfsMkdir(int inode, char* pName) {
     return create(inode, pName, INODE_DIRECTORY);
 }
 
-int create(int inode, char* pName, int type) {
+int create(int inum, char* pName, int type) {
     char* lName = getLastName(pName);
     if (lName[0]== '\0') {
         TracePrintf( 1, "[SERVER][ERR] Empty last name!\n");
@@ -58,7 +58,7 @@ int create(int inode, char* pName, int type) {
 
     int parent_inum;
     // finding the file name
-    int file_inum = yfsOpen(inode, pName, &parent_inum);
+    int file_inum = yfsOpen(inum, pName, &parent_inum);
     if (parent_inum == ERROR) return ERROR;
 
     // create new file
@@ -70,14 +70,10 @@ int create(int inode, char* pName, int type) {
         }
 
         // create a new entry for the file
-        struct inode* inode_entry = findInode(file_inum);
-
-        createInode(inode_entry, file_inum, parent_inum, type);
-
-        struct inode* parent_node = findInode(parent_inum);
+        createInode(file_inum, parent_inum, type);
 
         // put the entry in the block of parent dir
-        addInodeEntry(parent_node, file_inum, lName);
+        addInodeEntry(parent_inum, file_inum, lName);
 
         TracePrintf( 1, "[SERVER][INF] Successfully create %s with inum %d\n", lName, file_inum);
     }

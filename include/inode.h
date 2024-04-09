@@ -5,9 +5,9 @@
 
 int getFreeInode();
 
-void createInode(struct inode* inode, int inum, int parent_inum, int type);
+void createInode(int inum, int parent_inum, int type);
 
-void addInodeEntry(struct inode* inode, int Inum, char* name);
+void addInodeEntry(int parent_inum, int file_inum, char* name);
 
 int normPathname(char* pathname);
 

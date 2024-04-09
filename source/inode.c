@@ -1,5 +1,5 @@
 #include "inode.h"
-#include "disk.h"
+#include "cache.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -30,7 +30,9 @@ int getFreeInode() {
  * Create a new inode for directory/file
  * 
  */
-void createInode(struct inode* inode, int inum, int parent_inum, int type) {
+void createInode(int inum, int parent_inum, int type) {
+    struct inode* inode = findInode(inum);
+
     inode->type = type;
     inode->nlink = 0;
 
@@ -43,8 +45,8 @@ void createInode(struct inode* inode, int inum, int parent_inum, int type) {
             return;
         }
 
-        addInodeEntry(inode, inum, ".");
-        addInodeEntry(inode, parent_inum, "..");
+        addInodeEntry(inum, inum, ".");
+        addInodeEntry(inum, parent_inum, "..");
     } else {
         TracePrintf( 1, "[SERVER][LOG] Create Regular Inode\n");
 
@@ -52,6 +54,8 @@ void createInode(struct inode* inode, int inum, int parent_inum, int type) {
     }
 
     inode->indirect = getFreeBlock();
+
+    writeInode(inum, inode);
 }
 
 /* set the newly created directory/file name */
@@ -70,25 +74,30 @@ void setdirName(struct dir_entry* entry, char* filename) {
  *
  * 
  */
-void addInodeEntry(struct inode* inode, int inum, char* name) {
+void addInodeEntry(int parent_inum, int file_inum, char* name) {
+    struct inode* parent_node = findInode(parent_inum);
+
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
-    entry->inum = inum;
-    TracePrintf(1, "set entry with name %s and inum %d\n",name, inum);
+    entry->inum = file_inum;
+    TracePrintf(1, "set entry with name %s and inum %d\n",name, parent_inum);
     // cannot use strcpy here since name is not necessarily null terminated
     setdirName(entry, name);
 
-    int block_num = inode->size / BLOCKSIZE;
-    int block_offset = inode->size % BLOCKSIZE;
+    int block_num = parent_node->size / BLOCKSIZE;
+    int block_offset = parent_node->size % BLOCKSIZE;
+    TracePrintf( 1, "[SERVER][TRC] inode size %d, Block num %d, Block offset %d\n", parent_node->size, block_num, block_offset);
 
     if (block_num < NUM_DIRECT) {
-        Block* blk = read_block(inode->direct[block_num]);
+        Block* blk = read_block(parent_node->direct[block_num]);
         memcpy(blk->datum + block_offset, entry, sizeof(struct dir_entry));
-        WriteSector(inode->direct[block_num], (void *) blk->datum);
+        WriteSector(parent_node->direct[block_num], (void *) blk->datum);
 
+        TracePrintf( 1, "Write %s to block %d\n", name, block_num);
+        
         free(blk);
     } else {
         int indirect_block_num = block_num - NUM_DIRECT;
-        Block* indirectBlk = read_block(inode->indirect);
+        Block* indirectBlk = read_block(parent_node->indirect);
         
         int* indirect = (int*)indirectBlk->datum;
         Block* blk = read_block(indirect[indirect_block_num]);
@@ -100,9 +109,9 @@ void addInodeEntry(struct inode* inode, int inum, char* name) {
         free(blk);
     }
 
-    inode->size += sizeof(struct dir_entry);
+    parent_node->size += sizeof(struct dir_entry);
     // write the inode back to disk
-    writeInode(inum,inode);
+    writeInode(parent_inum, parent_node);
 }
 
 /* find the inum of last dir (before the last slash) */
@@ -176,7 +185,7 @@ int findInum(char* pathname, int curr_inum){
  * Remember to add indirect check...
  */
 int retrieveDir(int inum, char* dirname) {
-    TracePrintf( 1, "[SERVER][LOG] Retrieving Directory %s Inum\n", dirname);
+    TracePrintf( 1, "[SERVER][LOG] Retrieving Directory %s at parent Inum %d\n", dirname, inum);
     // find the inum of parent dir
     struct inode* inode = findInode(inum);
     if (inode->type != INODE_DIRECTORY) {
@@ -185,6 +194,7 @@ int retrieveDir(int inum, char* dirname) {
     }
 
     int i, dir_size = inode->size / sizeof(struct dir_entry);    
+    TracePrintf( 1, "[SERVER][TRC] Directory Size %d, inode size %d\n", dir_size, inode->size);
     for (i = 0; i < dir_size; ++i) {
         int idx = (i * sizeof(struct dir_entry)) / BLOCKSIZE;
 
@@ -204,8 +214,8 @@ int retrieveDir(int inum, char* dirname) {
         // indirect entry to be implemented
         Block* blk = read_block(bNum);
         struct dir_entry* dir = &(((struct dir_entry*)blk->datum)[i % (BLOCKSIZE / sizeof(struct dir_entry))]);
-        if (dir != NULL)
-            TracePrintf(1, "Dir entry: %s\n", dir->name);
+            
+         TracePrintf( 1, "[SERVER][TRC] Found Directory %s\n", dir->name);
         if (dir != NULL && strncmp(dirname, dir->name, DIRNAMELEN) == 0) {
             // found a match
             if (idx >= NUM_DIRECT) free(indirectBlk);

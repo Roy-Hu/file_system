@@ -206,6 +206,6 @@ int MkDir(char *pathname) {
 //     return 0;
 // }
 
-// int Shutdown(void) {
-//     return 0;
-// }
+int Shutdown(void) {
+    return 0;
+}

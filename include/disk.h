@@ -30,12 +30,6 @@ bool* freeInodes;
 
 int getInodeBlockNum(int Inum);
 
-struct inode* findInode(int Inum);
-
 int getFreeBlock();
-
-Block* read_block(int BNum);
-
-void writeInode(int iNum, struct inode* inode);
 
 #endif
