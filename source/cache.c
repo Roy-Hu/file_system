@@ -22,10 +22,6 @@ void writeInode(int inum, struct inode* inode) {
     memcpy(blk->datum + offset, inode, INODESIZE);
 
     WriteSector(block_num, (void *) blk->datum);
-
-    struct inode* test = findInode(inum);
-    TracePrintf( 1, "[SERVER][LOG] Inode %d, type %d, size %d\n", inum, inode->type, inode->size);
-    TracePrintf( 1, "[SERVER][LOG] Test Inode %d, type %d, size %d\n", inum, test->type, test->size);
 };
 
 /* find the inode given the inum */

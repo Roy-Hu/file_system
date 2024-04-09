@@ -12,7 +12,7 @@
 
 // On success, return the file's inum
 int yfsOpen(int inode, char* pName, int *parent_inum) {
-    TracePrintf( 1, "[SERVER][LOG] Open file\n");
+    TracePrintf( 1, "[SERVER][LOG] Open file %s\n", pName);
 
     if (normPathname(pName) == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Cannot normalize path name %s\n", pName);
@@ -38,7 +38,7 @@ int yfsOpen(int inode, char* pName, int *parent_inum) {
 }
 
 int yfsCreate(char* pName) {
-    TracePrintf( 1, "[SERVER][LOG] Create file\n");
+    TracePrintf( 1, "[SERVER][LOG] Create file %s\n", pName);
 
     return create(pName, INODE_REGULAR);
 }
@@ -63,27 +63,33 @@ int yfsWrite(int inum, void* buf, int curpos, int size) {
     //     memcpy(start,buf + pos , sz);
     // }
 
-    return inodeWrite(inum, buf, curpos, size);
+    return inodeReadWrite(inum, buf, curpos, size, FILEWRITE);
 }
 
-/* find the next writing position in the file of one block */
-char* findNextWritingPos(int curpos, struct inode* node) {
-    int blockOfFile = curpos / BLOCKSIZE;
-    char* res;
-    if (blockOfFile < NUM_DIRECT) {
-        Block* blk = read_block(node->direct[blockOfFile]);
-        res = ((char*)blk->datum + curpos % BLOCKSIZE);
-        
-    }else {
-        int indirect_block_num = blockOfFile - NUM_DIRECT;
-        Block* indirectBlk = read_block(node->indirect);
-        
-        int* indirect = (int*)indirectBlk->datum;
-        Block* blk = read_block(indirect[indirect_block_num]);
-        res = ((char*)blk->datum + curpos % BLOCKSIZE);
-    }
-    return res;
+int yfsRead(int inum, void* buf, int curpos, int size) {
+    TracePrintf( 1, "[SERVER][LOG] Read %d byte at inum %d, pos %d\n", size, inum, curpos);
+
+    return inodeReadWrite(inum, buf, curpos, size, FILEREAD);
 }
+
+// /* find the next writing position in the file of one block */
+// char* findNextWritingPos(int curpos, struct inode* node) {
+//     int blockOfFile = curpos / BLOCKSIZE;
+//     char* res;
+//     if (blockOfFile < NUM_DIRECT) {
+//         Block* blk = read_block(node->direct[blockOfFile]);
+//         res = ((char*)blk->datum + curpos % BLOCKSIZE);
+        
+//     }else {
+//         int indirect_block_num = blockOfFile - NUM_DIRECT;
+//         Block* indirectBlk = read_block(node->indirect);
+        
+//         int* indirect = (int*)indirectBlk->datum;
+//         Block* blk = read_block(indirect[indirect_block_num]);
+//         res = ((char*)blk->datum + curpos % BLOCKSIZE);
+//     }
+//     return res;
+// }
 
 int yfsMkdir(char* pName) {
     TracePrintf( 1, "[SERVER][LOG] Create Directory\n");

@@ -86,7 +86,7 @@ int Open(char *pathname) {
             return ERROR;
         }
 
-        TracePrintf( 1, "[CLIENT][LOG] Open file inum %d, fd %d: \n", res, fd);
+        TracePrintf( 1, "[CLIENT][LOG] Open file inum %d, fd %d: \n", msg->inum, fd);
 
         setOpenFile(fd, msg->inum, 0, true);
 
@@ -139,7 +139,7 @@ int Create(char *pathname) {
             return ERROR;
         }
 
-        TracePrintf( 1, "[CLIENT][LOG] Created file inum %d, fd %d: \n", res, fd);
+        TracePrintf( 1, "[CLIENT][LOG] Created file inum %d, fd %d: \n", msg->inum, fd);
 
         setOpenFile(fd, msg->inum, 0, true);
 
@@ -153,9 +153,43 @@ int Create(char *pathname) {
     }
 }
 
-// int Read(int fd, void *buf, int size) {
-//     return 0;
-// }
+int Read(int fd, void *buf, int size) {
+    // init fd
+    if (!isInit) init();
+    if (fd < 0 || fd > MAX_OPEN_FILES || openedFiles[fd].isValid == false || isInit == false) {
+        TracePrintf( 1, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
+        return ERROR;
+    }
+
+    int inum = openedFiles[fd].inum;
+    int curpos = openedFiles[fd].curPos;
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    OperationType tp = READ;
+    msg->type = (short) tp;
+    msg->size = size;
+    msg->bufPtr = buf;
+    msg->pos = curpos;
+    msg->inum = inum;
+
+    Send((void*)msg, -FILE_SERVER);
+    short res = msg->reply;
+
+    if (res != ERROR) {
+        int byte = msg->size;
+        TracePrintf( 1, "[CLIENT][LOG] Read %d bytes at fd %d: \n", byte, fd);
+        openedFiles[fd].curPos += byte;
+
+        return byte;
+    } else {
+        TracePrintf( 1, "[CLIENT][ERR] Fail to create file\n");
+
+        free(msg);
+        return res;
+    }
+
+    return 0;
+}
 
 int Write(int fd, void *buf, int size) {
     // init fd
@@ -177,6 +211,20 @@ int Write(int fd, void *buf, int size) {
     msg->inum = inum;
 
     Send((void*)msg, -FILE_SERVER);
+    short res = msg->reply;
+
+    if (res != ERROR) {
+        int byte = msg->size;
+        TracePrintf( 1, "[CLIENT][LOG] Write %d bytes at fd %d: \n", byte, fd);
+        openedFiles[fd].curPos += byte;
+
+        return byte;
+    } else {
+        TracePrintf( 1, "[CLIENT][ERR] Fail to create file\n");
+
+        free(msg);
+        return res;
+    }
 
     return 0;
 }
@@ -231,9 +279,9 @@ int MkDir(char *pathname) {
 //     return 0;
 // }
 
-// int Sync(void) {
-//     return 0;
-// }
+int Sync(void) {
+    return 0;
+}
 
 int Shutdown(void) {
     return 0;

@@ -7,6 +7,11 @@
 
 #define INVALID_INUM 0
 
+#define FILEWRITE 0
+#define FILEREAD 1
+#define DIRUPDATE 2
+
+
 int getFreeInode();
 
 void createInode(int inum, int parent_inum, int type);
@@ -21,6 +26,6 @@ int retrieve(int inum, char* dirname, int type);
 
 void setdirName(struct dir_entry* entry, char* filename);
 
-int inodeWrite(int inum, void* buf, int curpos, int size);
+int inodeReadWrite(int inum, void* buf, int curpos, int size, int type);
 
 #endif

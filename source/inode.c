@@ -76,32 +76,44 @@ void setdirName(struct dir_entry* entry, char* filename) {
  * 
  */
 
-int inodeWrite(int inum, void* buf, int curpos, int size) {
+int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
         TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
         return ERROR;
     }
 
+    if (inode->type == INODE_DIRECTORY && type == FILEWRITE) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot read/write directory\n");
+        return ERROR;
+    }
+    
     if (curpos == END_POS) curpos = inode->size;
 
-    int totalWrite = 0;
+    int totalbyte = 0;
     while (size > 0) {
+        if (type == FILEREAD && curpos >= inode->size) break;
+
         int block_num = curpos / BLOCKSIZE;
         int block_offset = curpos % BLOCKSIZE;
         TracePrintf( 1, "[SERVER][TRC] curpos %d, Block num %d, Block offset %d\n", curpos, block_num, block_offset);
 
         int write_size = BLOCKSIZE - block_offset;
         if (write_size > size) write_size = size;
-        totalWrite += size;
 
-        TracePrintf( 1, "Write %d to block %d\n", write_size, block_num);
 
         if (block_num < NUM_DIRECT) {
             Block* blk = read_block(inode->direct[block_num]);
 
-            memcpy(blk->datum + block_offset, buf, write_size);
-            WriteSector(inode->direct[block_num], (void *) blk->datum);
+            if (type == FILEREAD) {
+                memcpy(buf, blk->datum + block_offset, write_size);
+            } else if (type == FILEWRITE || type == DIRUPDATE) {
+                memcpy(blk->datum + block_offset, buf, write_size);
+                WriteSector(inode->direct[block_num], (void *) blk->datum);
+            } else {
+                TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
+                return ERROR;
+            }
 
             free(blk);
         } else {
@@ -111,12 +123,22 @@ int inodeWrite(int inum, void* buf, int curpos, int size) {
             int* indirect = (int*)indirectBlk->datum;
             Block* blk = read_block(indirect[indirect_block_num]);
 
-            memcpy(blk->datum + block_offset, buf, write_size);
-            WriteSector(indirect[indirect_block_num], (void *) blk->datum);
+            if (type == FILEREAD) {
+                memcpy(buf, blk->datum + block_offset, write_size);
+            } else if (type == FILEWRITE || type == DIRUPDATE) {
+                memcpy(blk->datum + block_offset, buf, write_size);
+                WriteSector(indirect[indirect_block_num], (void *) blk->datum);
+            } else {
+                TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
+                return ERROR;
+            }
 
             free(indirectBlk);
             free(blk);
         }
+
+        totalbyte += write_size;
+        TracePrintf( 1, "[SERVER][TRC] Write %d to inode %d block %d\n", write_size, inum, block_num);
 
         curpos += write_size;
         buf += write_size;
@@ -131,17 +153,16 @@ int inodeWrite(int inum, void* buf, int curpos, int size) {
 
     writeInode(inum, inode);
 
-    return totalWrite;
+    return totalbyte;
 }
 
 void addInodeEntry(int parent_inum, int file_inum, char* name) {
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     entry->inum = file_inum;
-    TracePrintf( 1, "set entry with name %s and inum %d\n",name, parent_inum);
     // cannot use strcpy here since name is not necessarily null terminated
     setdirName(entry, name);
 
-    inodeWrite(parent_inum, (void*)entry, END_POS, sizeof(struct dir_entry));
+    inodeReadWrite(parent_inum, (void*)entry, END_POS, sizeof(struct dir_entry), DIRUPDATE);
 }
 
 /* find the inum of last dir (before the last slash) */

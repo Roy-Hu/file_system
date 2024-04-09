@@ -52,10 +52,42 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case READ: {
+            TracePrintf( 1, "[SERVER][LOG] Received Read request!\n");
+
+            char* buf = (char *)malloc(msg->size * sizeof(char));
+
+
+            msg->size = yfsRead(msg->inum, buf, msg->pos, msg->size);
+
+            if (CopyTo(pid, msg->bufPtr, (void*)buf, msg->size) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Create: Fail copy to buf\n");
+            }
+
+            if (msg->size == ERROR) {
+                msg->pos = ERROR;
+                TracePrintf( 1, "[SERVER][ERR] Read: Fail to read file\n");
+                break;
+            }
+
             break;
         }
         case WRITE: {
             TracePrintf( 1, "[SERVER][LOG] Received Write request!\n");
+
+            char* buf = (char *)malloc(msg->size * sizeof(char));
+            if (CopyFrom(pid, (void*)buf, msg->bufPtr, msg->size) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Create: Fail copy from buf\n");
+            }
+
+            msg->size = yfsWrite(msg->inum, (void*)buf, msg->pos, msg->size);
+            if (msg->size == ERROR) {
+                msg->reply = ERROR;
+                TracePrintf( 1, "[SERVER][ERR] Read: Fail to read file\n");
+                break;
+            }
+
+            TracePrintf( 1, "[SERVER][ERR] Write %d byte tp msg\n", msg->size);
+
             break;
         }
         case SEEK: {
@@ -189,7 +221,7 @@ int main(int argc, char** argv) {
 
     // receiving messages
     while(1) {
-        TracePrintf( 1, "[SERVER][LOG] Start receiving message\n");
+        TracePrintf( 1, "\n[SERVER][LOG] Start receiving message\n");
         Messgae msg;
 
         int pid = Receive((void*)&msg);
