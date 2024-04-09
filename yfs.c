@@ -42,7 +42,7 @@ int msgHandler(Messgae* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
             }
 
-            msg->inum = yfsCreate(pName);
+            msg->inum = yfsCreate(pName, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
                 TracePrintf( 1, "[SERVER][ERR] Create: Fail to create file\n");
@@ -107,7 +107,7 @@ int msgHandler(Messgae* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
             }
 
-            msg->inum = yfsCreate(pName);
+            msg->inum = yfsMkdir(pName, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
                 TracePrintf( 1, "[SERVER][ERR] Create: Fail to create dir\n");

@@ -10,6 +10,8 @@
 #include <string.h>
 #include <stdio.h>
 
+extern int CURR_INODE;
+
 // On success, return the file's inum
 int yfsOpen(int inode, char* pName, int *parent_inum) {
     TracePrintf( 1, "[SERVER][LOG] Open file %s\n", pName);
@@ -27,6 +29,7 @@ int yfsOpen(int inode, char* pName, int *parent_inum) {
 
     TracePrintf( 1, "[SERVER][LOG] Get last name %s\n", lName);
 
+
     // found the inum of the last dir (before the last slash)
     *parent_inum = inumFind(pName, inode);
     if (*parent_inum == ERROR) {
@@ -37,10 +40,10 @@ int yfsOpen(int inode, char* pName, int *parent_inum) {
     return inumRetrieve(*parent_inum, lName, INODE_REGULAR);
 }
 
-int yfsCreate(char* pName) {
+int yfsCreate(char* pName, int currInum) {
     TracePrintf( 1, "[SERVER][LOG] Create file %s\n", pName);
 
-    return create(pName, INODE_REGULAR);
+    return create(pName, INODE_REGULAR, currInum);
 }
 
 /* return the bytes written to the file*/
@@ -91,13 +94,13 @@ int yfsRead(int inum, void* buf, int curpos, int size) {
 //     return res;
 // }
 
-int yfsMkdir(char* pName) {
+int yfsMkdir(char* pName, int currInum) {
     TracePrintf( 1, "[SERVER][LOG] Create Directory\n");
 
-    return create(pName, INODE_DIRECTORY);
+    return create(pName, INODE_DIRECTORY, currInum);
 }
 
-int create(char* pName, int type) {
+int create(char* pName, int type, int currInum) {
     char* lName = getLastName(pName);
     if (lName[0]== '\0') {
         TracePrintf( 1, "[SERVER][ERR] Empty last name!\n");
@@ -106,7 +109,7 @@ int create(char* pName, int type) {
 
     int parent_inum;
     // finding the file name
-    int file_inum = yfsOpen(INVALID_INUM, pName, &parent_inum);
+    int file_inum = yfsOpen(currInum, pName, &parent_inum);
     if (parent_inum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s\n", pName);
         return ERROR;
@@ -119,7 +122,7 @@ int create(char* pName, int type) {
             TracePrintf( 1, "[SERVER][ERR] No availiable inode!\n");
             return ERROR;
         }
-
+        //TracePrintf( 1, "[SERVER][ERR] No availiable inode!\n");
         // create a new entry for the file
         inodeCreate(file_inum, parent_inum, type);
 

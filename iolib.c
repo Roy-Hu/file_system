@@ -9,7 +9,7 @@
 #include "yfs.h"
 
 /* keep track of current innode */
-int curInode = ROOTINODE;
+int CURR_INODE = ROOTINODE;
 /*
  * For an Open or Create
  * request, your file system library learns the file’s inode number from the file server process (the current
@@ -128,6 +128,7 @@ int Create(char *pathname) {
     OperationType tp = CREATE;
     msg->type = (short) tp;
     msg->pathnamePtr = pathname;
+    msg->inum = CURR_INODE;
 
     Send((void*)msg, -FILE_SERVER);
     short res = msg->reply;
@@ -255,6 +256,7 @@ int MkDir(char *pathname) {
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = MKDIR;
     msg->type = (short) tp;
+    msg->inum = CURR_INODE;
     msg->pathnamePtr = pathname;
 
     Send((void*)msg, -FILE_SERVER);
