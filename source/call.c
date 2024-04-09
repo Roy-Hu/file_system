@@ -94,6 +94,13 @@ int yfsRead(int inum, void* buf, int curpos, int size) {
 //     return res;
 // }
 
+// return the size of inode (eof)
+int yfsSeek(int inum) {
+    struct inode* node = findInode(inum); 
+    if (node == NULL) return ERROR;
+    return node->size;
+}
+
 int yfsMkdir(char* pName, int currInum) {
     TracePrintf( 1, "[SERVER][LOG] Create Directory\n");
 

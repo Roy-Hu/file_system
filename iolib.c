@@ -230,9 +230,47 @@ int Write(int fd, void *buf, int size) {
     return 0;
 }
 
-// int Seek(int fd, int offset, int whence) {
-//     return 0;
-// }
+int Seek(int fd, int offset, int whence) {
+    if (fd < 0 || fd > MAX_OPEN_FILES || openedFiles[fd].isValid == false || isInit == false) {
+        TracePrintf( 1, "[CLIENT][ERR] Seek: Not a valid fd: %d number!\n", fd);
+        return ERROR;
+    }
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    OperationType tp = SEEK;
+    msg->type = (short) tp;
+    int seekPos = 0;
+    switch(whence) {
+        case SEEK_SET: {
+            seekPos = offset;
+            break;
+        }
+        case SEEK_CUR: {
+            seekPos = openedFiles[fd].curPos + offset;
+            break;
+        }
+        case SEEK_END: {
+            msg->inum = openedFiles[fd].inum;
+            Send((void*)msg, -FILE_SERVER);
+            // should return the end of the file
+            short res = msg->reply;
+            if (res == ERROR) {
+                TracePrintf( 1, "[CLIENT][ERR] Seek: fail to find current fileszie\n");
+                return ERROR;
+            }
+            seekPos = res + offset;
+            break;
+        }
+        default: {
+            TracePrintf( 1, "[CLIENT][ERR] Seek: Not a valid whence\n");
+            break;
+        }
+    }
+    if (seekPos < 0) {
+        TracePrintf( 1, "[CLIENT][ERR] Seek: seekPos goes beyond the beginning of the file\n");
+        return ERROR;
+    }
+    return seekPos;
+}
 
 // int Link(char *oldname, char *newname) {
 //     return 0;

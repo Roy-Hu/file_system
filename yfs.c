@@ -91,6 +91,12 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case SEEK: {
+            TracePrintf( 1, "[SERVER][LOG] Received Seek request!\n");
+            msg->reply = yfsSeek(msg->inum);
+            if (msg->reply == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Seek: Fail to return inum of the file\n");
+                break;
+            }
             break;
         }
         case LINK: {

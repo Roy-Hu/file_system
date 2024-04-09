@@ -4,7 +4,6 @@
 3. Finish each functions in iolib.c
     - ### in progress
     - ### Need to be done:
-        - Seek
         - Link
         - Unlink
         - Readlink
@@ -19,6 +18,7 @@
         - Open
         - Write
         - Read
+        - Seek
 4. LRU cache
 
 ### use the bash for testing

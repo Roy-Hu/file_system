@@ -9,11 +9,12 @@
 int
 main()
 {
-    TracePrintf( 1, "Communicate test in progress\n");
-    MkDir("/sss");
+    TracePrintf( 1, "Seek test in progress\n");
+    int fd = Open("/sss");
+    //Write(fd, "cccccccccccccccc", 16);
+    printf("seekpos is: %d\n", Seek(fd, 11, SEEK_END));
 
     // This should return ERR since /sss is a file
-	Create("/sss/ssss");
 
     // This should return ERR since /aaa is not created
     // Create("/aaa/ssss");

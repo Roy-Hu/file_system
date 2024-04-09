@@ -18,6 +18,8 @@ int yfsMkdir(char* pName, int currInum);
 
 int create(char* pName, int type, int currInum);
 
+int yfsSeek(int inum);
+
 // int touch(int inum, char* filename);
 
 #endif
