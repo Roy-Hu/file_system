@@ -54,6 +54,7 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case WRITE: {
+            TracePrintf( 1, "[SERVER][LOG] Received Write request!\n");
             break;
         }
         case SEEK: {

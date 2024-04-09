@@ -180,7 +180,7 @@ int findInum(char* pathname, int curr_inum){
 }
 
 /* 
- * retrieve the directory inum 
+ * retrieve the directory inum give the dir/filename
  * return ERROR if not found
  * Remember to add indirect check...
  */

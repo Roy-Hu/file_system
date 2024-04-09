@@ -4,7 +4,7 @@
 #include "cache.h"
 
 #include <comp421/yalnix.h>
-#include <comp421/filesystem.h>
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -41,6 +41,45 @@ int yfsCreate(int inode, char* pName) {
     TracePrintf( 1, "[SERVER][LOG] Create file\n");
 
     return create(inode, pName, INODE_REGULAR);
+}
+
+/* return the bytes written to the file*/
+int yfsWrite(int inum, void* buf, int curpos, int size) {
+    struct inode* node = findInode(inum);
+    // if (node->size < size) {
+    //     // need functions enlarge the file to hold the size
+    //     continue;
+    // }
+    // position in the buffer to write
+    int pos = 0;
+    // size written
+    int sz = 0;
+    for (; pos < size; pos+= sz) {
+        // write position
+        char* start = findNextWritingPos(curpos + sz, node);
+        if (size - pos < BLOCKSIZE - (curpos + pos) % BLOCKSIZE) sz = size - pos;
+        memcpy(start,buf + pos , sz);
+    }
+    return 0;
+}
+
+/* find the next writing position in the file of one block */
+char* findNextWritingPos(int curpos, struct inode* node) {
+    int blockOfFile = curpos / BLOCKSIZE;
+    char* res;
+    if (blockOfFile < NUM_DIRECT) {
+        Block* blk = read_block(node->direct[blockOfFile]);
+        res = ((char*)blk->datum + curpos % BLOCKSIZE);
+        
+    }else {
+        int indirect_block_num = blockOfFile - NUM_DIRECT;
+        Block* indirectBlk = read_block(node->indirect);
+        
+        int* indirect = (int*)indirectBlk->datum;
+        Block* blk = read_block(indirect[indirect_block_num]);
+        res = ((char*)blk->datum + curpos % BLOCKSIZE);
+    }
+    return res;
 }
 
 int yfsMkdir(int inode, char* pName) {

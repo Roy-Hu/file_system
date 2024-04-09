@@ -81,19 +81,21 @@ int Open(char *pathname) {
         int fd = findNewFd();
         if (fd == -1) {
             TracePrintf( 1, "[CLIENT][ERR] No more file can be opened\n");
+            free(msg);
             return ERROR;
         }
 
         TracePrintf( 1, "[CLIENT][LOG] Open file inum %d, fd %d: \n", res, fd);
 
         setOpenFile(res, fd);
-
+        free(msg);
         return fd;
     } else {
         TracePrintf( 1, "[CLIENT][ERR] Fail to open file\n");
+        free(msg);
         return res;
     }
-
+    free(msg);
 
     return res;
 }
@@ -148,9 +150,26 @@ int Create(char *pathname) {
 //     return 0;
 // }
 
-// int Write(int fd, void *buf, int size) {
-//     return 0;
-// }
+int Write(int fd, void *buf, int size) {
+    // init fd
+    if (!isInit) init();
+    if (fd < 0 || fd > MAX_OPEN_FILES || openedFiles[fd].isValid == false || isInit == false) {
+        TracePrintf( 1, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
+        return ERROR;
+    }
+    int inum = openedFiles[fd].iNum;
+    int curpos = openedFiles[fd].curPos;
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    OperationType tp = WRITE;
+    msg->type = (short) tp;
+    msg->offset_size = size;
+    msg->buff = buf;
+    msg->curpos_len = curpos;
+    msg->whence_inum = inum;
+    Send((void*)msg, -FILE_SERVER);
+    return 0;
+}
 
 // int Seek(int fd, int offset, int whence) {
 //     return 0;

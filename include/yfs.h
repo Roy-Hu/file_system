@@ -25,9 +25,9 @@ typedef enum {
 typedef struct messgae {
     short type; /* message type */
     char *path_oldName; /* used interchangeable with oldname */
-    int fd_len; /* used intercahgeable with len*/
+    int curpos_len; /* used intercahgeable with len*/
     void *buff;
-    int whence;
+    int whence_inum;
     int offset_size; /* used interchangeable with size */
     struct Stat *statbuf;
     char *newname;
