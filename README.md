@@ -4,8 +4,6 @@
 3. Finish each functions in iolib.c
     - ### in progress
     - ### Need to be done:
-        - Link
-        - Unlink
         - Readlink
         - RmDir
         - ChDir
@@ -19,8 +17,10 @@
         - Write
         - Read
         - Seek
+        - Link
+        - Unlink
 4. LRU cache
-
+5. Handle relative paths (haven't tested yet, but I think our work only works with absolute paths)
 ### use the bash for testing
 ```
 chmod +x testshell.sh
