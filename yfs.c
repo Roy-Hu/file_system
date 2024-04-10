@@ -11,10 +11,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 int msgHandler(Messgae* msg, int pid) {
     OperationType myType = msg->type;
-    int res = 0;
 
     switch(myType) {
         case OPEN: {
@@ -142,7 +142,7 @@ int msgHandler(Messgae* msg, int pid) {
         }
     }
 
-    return res;
+    return 0;
 }
 
 /**
@@ -229,8 +229,9 @@ int main(int argc, char** argv) {
     while(1) {
         TracePrintf( 1, "\n[SERVER][LOG] Start receiving message\n");
         Messgae msg;
+        assert(sizeof(msg) == 32);
 
-        int pid = Receive((void*)&msg);
+        int pid = Receive(&msg);
         if (pid == ERROR) {
             TracePrintf( 1, "[SERVER][ERR] Fail to receive msg\n");
             return ERROR;
@@ -241,8 +242,7 @@ int main(int argc, char** argv) {
             Halt();
         }
 
-        int opt = msgHandler((Messgae*)&msg, pid);
-        if (opt == ERROR) return ERROR;
+        if (msgHandler(&msg, pid) == ERROR) return ERROR;
 
         Reply((void*)&msg, pid);
     }

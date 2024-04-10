@@ -32,8 +32,6 @@ typedef struct messgae {
 
     void* bufPtr;
     char* pathnamePtr;
-
-    char padding[8];
 } Messgae;
 
 int msgHandler(Messgae* msg, int pid);
