@@ -156,3 +156,27 @@ int yfsLink(char* oldname, char* newname) {
     
     return 0;
 }
+
+int yfsUnLink(char* pName) {
+    TracePrintf( 1, "[SERVER][LOG] UnLink %s\n", pName);
+    printdirentry(1);
+    int parentInum;
+    int fileinum = yfsOpen(INVALID_INUM, pName, &parentInum);
+    if (fileinum == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Fail to find file %s\n", pName);
+        return ERROR;
+    }
+
+    struct inode* inode = findInode(fileinum);
+    if (inode->type == INODE_DIRECTORY) {
+        TracePrintf( 1, "[SERVER][ERR] %s is a directory, cannot unlink\n", pName);
+        return ERROR;
+    }
+    
+    if (parentInum == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s\n", pName);
+        return ERROR;
+    }
+
+    return inodeDelEntry(parentInum, fileinum);
+}

@@ -122,6 +122,20 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case UNLINK: {
+            TracePrintf( 1, "[SERVER][LOG] Received Unlink request!\n");
+
+            char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
+            if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
+            }
+
+            msg->reply = yfsUnLink(pName);
+            if (msg->inum == ERROR) {
+                msg->reply = ERROR;
+                TracePrintf( 1, "[SERVER][ERR] UnLink: Fail to unlink %s\n", pName);
+                break;
+            }
+
             break;
         }
         case MKDIR: {

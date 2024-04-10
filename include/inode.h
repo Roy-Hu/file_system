@@ -21,4 +21,10 @@ int inumRetrieve(int inum, char *dirname, int type);
 
 int inodeReadWrite(int inum, void *buf, int curpos, int size, int type);
 
+int inodeDelete(int inum);
+
+int inodeDelEntry(int parentInum, int fileInum);
+
+void printdirentry(int inum);
+
 #endif

@@ -303,9 +303,20 @@ int Link(char *oldname, char *newname) {
     return 0;
 }
 
-// int Unlink(char *pathname) {
-//     return 0;
-// }
+int Unlink(char *pathname) {
+    if (!isInit) init();
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    msg->type = UNLINK;
+    msg->pathnamePtr = pathname;
+
+    Send((void*)msg, -FILE_SERVER);
+    if (msg->reply == ERROR) {
+        return ERROR;
+    } 
+
+    return 0;
+}
 
 // int SymLink(char *oldname, char *newname) {
 //     return 0;

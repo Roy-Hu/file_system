@@ -20,4 +20,6 @@ int yfsSeek(int inum);
 
 int yfsLink(char* oldname, char* newname);
 
+int yfsUnLink(char* pName);
+
 #endif
