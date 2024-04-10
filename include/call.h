@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include <comp421/filesystem.h>
 
-// char* findNextWritingPos(int curpos, struct inode* node);
-
 int yfsOpen(int inode, char* pName, int *parent_inum);
 
 int yfsCreate(char* pName, int currInum);
@@ -20,6 +18,6 @@ int create(char* pName, int type, int currInum);
 
 int yfsSeek(int inum);
 
-// int touch(int inum, char* filename);
+int yfsLink(char* oldname, char* newname);
 
 #endif

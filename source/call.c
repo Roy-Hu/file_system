@@ -13,7 +13,7 @@
 extern int CURR_INODE;
 
 // On success, return the file's inum
-int yfsOpen(int inode, char* pName, int *parent_inum) {
+int yfsOpen(int inode, char* pName, int *parentInum) {
     TracePrintf( 1, "[SERVER][LOG] Open file %s\n", pName);
 
     if (normPathname(pName) == ERROR) {
@@ -31,17 +31,22 @@ int yfsOpen(int inode, char* pName, int *parent_inum) {
 
 
     // found the inum of the last dir (before the last slash)
-    *parent_inum = inumFind(pName, inode);
-    if (*parent_inum == ERROR) {
+    *parentInum = inumFind(pName, inode);
+    if (*parentInum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s, non-existing dir!\n", pName);
         return ERROR;
     }
 
-    return inumRetrieve(*parent_inum, lName, INODE_REGULAR);
+    return inumRetrieve(*parentInum, lName, INODE_REGULAR);
 }
 
 int yfsCreate(char* pName, int currInum) {
     TracePrintf( 1, "[SERVER][LOG] Create file %s\n", pName);
+
+    if (normPathname(pName) == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot normalize path name %s\n", pName);
+        return ERROR;
+    }
 
     return create(pName, INODE_REGULAR, currInum);
 }
@@ -49,22 +54,6 @@ int yfsCreate(char* pName, int currInum) {
 /* return the bytes written to the file*/
 int yfsWrite(int inum, void* buf, int curpos, int size) {
     TracePrintf( 1, "[SERVER][LOG] Write %d byte at inum %d, pos %d\n", size, inum, curpos);
-
-    // struct inode* node = findInode(inum);
-    // // if (node->size < size) {
-    // //     // need functions enlarge the file to hold the size
-    // //     continue;
-    // // }
-    // // position in the buffer to write
-    // int pos = 0;
-    // // size written
-    // int sz = 0;
-    // for (; pos < size; pos+= sz) {
-    //     // write position
-    //     char* start = findNextWritingPos(curpos + sz, node);
-    //     if (size - pos < BLOCKSIZE - (curpos + pos) % BLOCKSIZE) sz = size - pos;
-    //     memcpy(start,buf + pos , sz);
-    // }
 
     return inodeReadWrite(inum, buf, curpos, size, FILEWRITE);
 }
@@ -74,25 +63,6 @@ int yfsRead(int inum, void* buf, int curpos, int size) {
 
     return inodeReadWrite(inum, buf, curpos, size, FILEREAD);
 }
-
-// /* find the next writing position in the file of one block */
-// char* findNextWritingPos(int curpos, struct inode* node) {
-//     int blockOfFile = curpos / BLOCKSIZE;
-//     char* res;
-//     if (blockOfFile < NUM_DIRECT) {
-//         Block* blk = read_block(node->direct[blockOfFile]);
-//         res = ((char*)blk->datum + curpos % BLOCKSIZE);
-        
-//     }else {
-//         int indirect_block_num = blockOfFile - NUM_DIRECT;
-//         Block* indirectBlk = read_block(node->indirect);
-        
-//         int* indirect = (int*)indirectBlk->datum;
-//         Block* blk = read_block(indirect[indirect_block_num]);
-//         res = ((char*)blk->datum + curpos % BLOCKSIZE);
-//     }
-//     return res;
-// }
 
 // return the size of inode (eof)
 int yfsSeek(int inum) {
@@ -104,6 +74,11 @@ int yfsSeek(int inum) {
 int yfsMkdir(char* pName, int currInum) {
     TracePrintf( 1, "[SERVER][LOG] Create Directory\n");
 
+    if (normPathname(pName) == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot normalize path name %s\n", pName);
+        return ERROR;
+    }
+
     return create(pName, INODE_DIRECTORY, currInum);
 }
 
@@ -114,29 +89,29 @@ int create(char* pName, int type, int currInum) {
         return ERROR;
     }
 
-    int parent_inum;
+    int parentInum;
     // finding the file name
-    int file_inum = yfsOpen(currInum, pName, &parent_inum);
-    if (parent_inum == ERROR) {
+    int fileInum = yfsOpen(currInum, pName, &parentInum);
+    if (parentInum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s\n", pName);
         return ERROR;
     }
 
     // create new file
-    if (file_inum == ERROR) {
-        file_inum = getFreeInode();
-        if (file_inum == 0) {
+    if (fileInum == ERROR) {
+        fileInum = getFreeInode();
+        if (fileInum == 0) {
             TracePrintf( 1, "[SERVER][ERR] No availiable inode!\n");
             return ERROR;
         }
         //TracePrintf( 1, "[SERVER][ERR] No availiable inode!\n");
         // create a new entry for the file
-        inodeCreate(file_inum, parent_inum, type);
+        inodeCreate(fileInum, parentInum, type);
 
         // put the entry in the block of parent dir
-        inodeAddEntry(parent_inum, file_inum, lName);
+        inodeAddEntry(parentInum, fileInum, lName);
 
-        TracePrintf( 1, "[SERVER][INF] Successfully create %s with inum %d\n", lName, file_inum);
+        TracePrintf( 1, "[SERVER][INF] Successfully create %s with inum %d\n", lName, fileInum);
     }
     // already existed
     // more operations need to be added
@@ -146,10 +121,10 @@ int create(char* pName, int type, int currInum) {
             return ERROR;
         }
 
-        struct inode* inode = findInode(file_inum);
+        struct inode* inode = findInode(fileInum);
 
         if (inode->type != INODE_REGULAR) {
-            TracePrintf( 1, "[SERVER][ERR] %s's inode %d type is not REGULAR\n", lName, file_inum);
+            TracePrintf( 1, "[SERVER][ERR] %s's inode %d type is not REGULAR\n", lName, fileInum);
             return ERROR;
         }
 
@@ -159,45 +134,25 @@ int create(char* pName, int type, int currInum) {
         inode->size = 0;
     }
     
-    return file_inum;
+    return fileInum;
 }
 
-// /* create a file during the */
-// int touch(int inum, char* filename) {
-//     (void) inum;
-//     (void) filename;
-//     TracePrintf( 1, "[SERVER][LOG] Touch a new file for %s\n", filename);
+int yfsLink(char* oldname, char* newname) {
+    TracePrintf( 1, "[SERVER][LOG] Link %s to %s\n", newname, oldname);
 
-//     int new_inum = getFreeInode();
- 
-//     if (new_inum == 0) {
-//         TracePrintf( 1, "[SERVER][ERR] No availiable inode!\n");
-//         return ERROR;
-//     }
-//     // create a new entry for the file
-//     struct inode* inode_entry = findInode(new_inum);
-//     inodeCreate(inode_entry, INODE_REGULAR, false);
+    int parentInum;
+    int fileinum = yfsOpen(INVALID_INUM, oldname, &parentInum);
+    if (fileinum == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Fail to find file %s\n", oldname);
+        return ERROR;
+    }
 
-//     // Why reuse++?
-//     // inode_entry->reuse++;
+    if (parentInum == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s\n", oldname);
+        return ERROR;
+    }
 
-
-//     // create a new dir
-
-//     // struct dir_entry dir;
-//     // dir.inum = new_inum;
-
-//     // memset(&entry.name, '\0', DIRNAMELEN);
-//     // int filenameLen = strlen(filename);
-//     // if(filenameLen > DIRNAMELEN){
-// 	// 	 memcpy(&entry.name, filename, DIRNAMELEN);
-// 	// }
-//     // else {
-//     //     memcpy(&entry.name, filename, filenameLen);
-//     // }
-
-//     // adding new dir to parent inode
-
-
-//     return new_inum;
-// }
+    inodeAddEntry(parentInum, fileinum, newname);
+    
+    return 0;
+}

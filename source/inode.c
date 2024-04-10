@@ -126,7 +126,12 @@ void inodeAddEntry(int parent_inum, int file_inum, char* name) {
     // cannot use strcpy here since name is not necessarily null terminated
     setdirName(entry, name);
 
+    TracePrintf( 1, "[SERVER][LOG] Add %s to Inode %d's entry\n", name, parent_inum);
+
     inodeReadWrite(parent_inum, (void*)entry, END_POS, sizeof(struct dir_entry), DIRUPDATE);
+
+    struct inode* inode = findInode(file_inum);
+    if (inode != NULL) inode->nlink++;
 }
 
 /* find the inum of last dir (before the last slash) */
@@ -266,6 +271,8 @@ int inumRetrieve(int inum, char* name, int type) {
 
         free(blk);
     }
+
     TracePrintf( 1, "[SERVER][LOG] retrivedir: Directory/file:%s does not exist!\n", name);
+
     return ERROR;
 }

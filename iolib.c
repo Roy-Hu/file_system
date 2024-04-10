@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "yfs.h"
 
@@ -25,21 +26,31 @@ typedef struct openedFile {
 /* array of struct to keep track of opened files */
 // openedFile* filesOpened[MAX_OPEN_FILES];
 
-OpenedFile openedFiles[MAX_OPEN_FILES];
+OpenedFile files[MAX_OPEN_FILES];
 
 bool isInit = false;
 
-void setOpenFile(int fd, int inum, int pos, bool valid) {
-    openedFiles[fd].inum = inum;
-    openedFiles[fd].curPos = pos;
-    openedFiles[fd].isValid = valid;
+void openFile(int fd, int inum, int pos) {
+    files[fd].inum = inum;
+    files[fd].curPos = pos;
+    files[fd].isValid = true;
+}
+
+void updateFile(int fd, int pos) {
+    files[fd].curPos = pos;
+}
+
+void closeFile(int fd) {
+    files[fd].inum = 0;
+    files[fd].isValid = false;
+    files[fd].curPos = 0;
 }
 
 // check if file is opened given inum
 bool opened(int inum) {
     int i;
     for (i = 0; i < MAX_OPEN_FILES; i++) {
-        if (openedFiles[i].inum == inum) return true;
+        if (files[i].inum == inum) return true;
     }
 
     return false;
@@ -49,7 +60,7 @@ bool opened(int inum) {
 int findNewFd() {
     int i;
     for (i = 0; i < MAX_OPEN_FILES; i++) {
-        if (!openedFiles[i].isValid) return i;
+        if (!files[i].isValid) return i;
     }
 
     return -1;
@@ -59,7 +70,7 @@ int findNewFd() {
 void init() {
     int i;
     for (i = 0; i < MAX_OPEN_FILES; i++) {
-        openedFiles[i].isValid = false;
+        files[i].isValid = false;
     }
 
     isInit = true;
@@ -88,7 +99,7 @@ int Open(char *pathname) {
 
         TracePrintf( 1, "[CLIENT][LOG] Open file inum %d, fd %d: \n", msg->inum, fd);
 
-        setOpenFile(fd, msg->inum, 0, true);
+        openFile(fd, msg->inum, 0);
 
         free(msg);
 
@@ -108,12 +119,12 @@ int Open(char *pathname) {
 number of a file currently open in this process, this request returns ERROR; otherwise, it returns 0. */
 int Close(int fd) {
     TracePrintf( 1, "[CLIENT][LOG] Close Request for fd: %d\n", fd);
-    if (fd < 0 || fd > MAX_OPEN_FILES || openedFiles[fd].isValid == false || isInit == false) {
+    if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
         TracePrintf( 1, "[CLIENT][ERR] Close: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
-    setOpenFile(fd, 0, 0, false);
+    closeFile(fd);
 
     TracePrintf( 1, "[CLIENT][LOG] Close: Closed file successfully with fd: %d number!\n", fd);
     return 0;
@@ -142,7 +153,7 @@ int Create(char *pathname) {
 
         TracePrintf( 1, "[CLIENT][LOG] Created file inum %d, fd %d: \n", msg->inum, fd);
 
-        setOpenFile(fd, msg->inum, 0, true);
+        openFile(fd, msg->inum, 0);
 
         free(msg);
         return fd;
@@ -157,13 +168,13 @@ int Create(char *pathname) {
 int Read(int fd, void *buf, int size) {
     // init fd
     if (!isInit) init();
-    if (fd < 0 || fd > MAX_OPEN_FILES || openedFiles[fd].isValid == false || isInit == false) {
+    if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
         TracePrintf( 1, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
-    int inum = openedFiles[fd].inum;
-    int curpos = openedFiles[fd].curPos;
+    int inum = files[fd].inum;
+    int curpos = files[fd].curPos;
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = READ;
@@ -179,7 +190,7 @@ int Read(int fd, void *buf, int size) {
     if (res != ERROR) {
         int byte = msg->size;
         TracePrintf( 1, "[CLIENT][LOG] Read %d bytes at fd %d: \n", byte, fd);
-        openedFiles[fd].curPos += byte;
+        updateFile(fd, files[fd].curPos + byte);
 
         return byte;
     } else {
@@ -195,13 +206,13 @@ int Read(int fd, void *buf, int size) {
 int Write(int fd, void *buf, int size) {
     // init fd
     if (!isInit) init();
-    if (fd < 0 || fd > MAX_OPEN_FILES || openedFiles[fd].isValid == false || isInit == false) {
+    if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
         TracePrintf( 1, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
-    int inum = openedFiles[fd].inum;
-    int curpos = openedFiles[fd].curPos;
+    int inum = files[fd].inum;
+    int curpos = files[fd].curPos;
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = WRITE;
@@ -217,7 +228,7 @@ int Write(int fd, void *buf, int size) {
     if (res != ERROR) {
         int byte = msg->size;
         TracePrintf( 1, "[CLIENT][LOG] Write %d bytes at fd %d: \n", byte, fd);
-        openedFiles[fd].curPos += byte;
+        updateFile(fd, files[fd].curPos + byte);
 
         return byte;
     } else {
@@ -231,7 +242,7 @@ int Write(int fd, void *buf, int size) {
 }
 
 int Seek(int fd, int offset, int whence) {
-    if (fd < 0 || fd > MAX_OPEN_FILES || openedFiles[fd].isValid == false || isInit == false) {
+    if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
         TracePrintf( 1, "[CLIENT][ERR] Seek: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
@@ -245,11 +256,11 @@ int Seek(int fd, int offset, int whence) {
             break;
         }
         case SEEK_CUR: {
-            seekPos = openedFiles[fd].curPos + offset;
+            seekPos = files[fd].curPos + offset;
             break;
         }
         case SEEK_END: {
-            msg->inum = openedFiles[fd].inum;
+            msg->inum = files[fd].inum;
             Send((void*)msg, -FILE_SERVER);
             // should return the end of the file
             short res = msg->reply;
@@ -269,12 +280,28 @@ int Seek(int fd, int offset, int whence) {
         TracePrintf( 1, "[CLIENT][ERR] Seek: seekPos goes beyond the beginning of the file\n");
         return ERROR;
     }
+
+    updateFile(fd, seekPos);
+
     return seekPos;
 }
 
-// int Link(char *oldname, char *newname) {
-//     return 0;
-// }
+int Link(char *oldname, char *newname) {
+        // init fd
+    if (!isInit) init();
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    msg->type = LINK;
+    msg->pathnamePtr = oldname;
+    msg->bufPtr = newname;
+
+    Send((void*)msg, -FILE_SERVER);
+    if (msg->reply == ERROR) {
+        return ERROR;
+    } 
+
+    return 0;
+}
 
 // int Unlink(char *pathname) {
 //     return 0;
