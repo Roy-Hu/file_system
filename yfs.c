@@ -156,6 +156,18 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case RMDIR: {
+            TracePrintf( 1, "[SERVER][LOG] Received RmDir request!\n");
+            char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
+            if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
+            }
+            msg->inum = yfsRmDir(pName, msg->inum);
+            if (msg->inum == ERROR) {
+                msg->reply = ERROR;
+                TracePrintf( 1, "[SERVER][ERR] RmDir: Fail to remove dir\n");
+                break;
+            }
+
             break;
         }
         case CHDIR: {

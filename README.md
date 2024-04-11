@@ -2,10 +2,10 @@
 1. Init free blocks and inodes in the file system (finished-ish, not tested)
 2. Finish handling functions to deal with requests send by the client (kernel) (request sending and receiving work!)
 3. Finish each functions in iolib.c
-    - ### in progress
+    - ### In progress
+        - RmDir
     - ### Need to be done:
         - Readlink
-        - RmDir
         - ChDir
         - Stat
         - Sync

@@ -22,4 +22,6 @@ int yfsLink(char* oldname, char* newname);
 
 int yfsUnLink(char* pName);
 
+int yfsRmDir(char* pName, int currInum);
+
 #endif

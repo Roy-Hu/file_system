@@ -294,7 +294,10 @@ void inodeAddEntry(int parent_inum, int file_inum, char* name) {
     
 }
 
-/* find the inum of last dir (before the last slash) */
+/* 
+ * find the inum of last dir (before the last slash)
+ * inum is the currInode
+ */
 int inumFind(char* pathname, int inum){
     TracePrintf( 1, "[SERVER][LOG] Finding Inum for %s\n", pathname);
 

@@ -82,6 +82,60 @@ int yfsMkdir(char* pName, int currInum) {
     return create(pName, INODE_DIRECTORY, currInum);
 }
 
+int yfsRmDir(char* pName, int currInum) {
+    TracePrintf(1, "[SERVER][LOG] Remove Directory\n");
+    int parent_inum = inumFind(pName, currInum);
+    if (parent_inum == ERROR) {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to find parent_inum\n");
+        return ERROR;
+    }
+    char* lName = getLastName(pName);
+    int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY);
+    if (dir_inum == ERROR || dir_inum == ROOTINODE) {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to find dir_inum\n");
+        return ERROR;
+    }
+    struct inode* dir_inode = findInode(dir_inum);
+    if (dir_inode->type != INODE_DIRECTORY || dir_inode == NULL) {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Found Invalid Inode\n");
+        return ERROR;
+    }
+    TracePrintf(1, "[SERVER][LOG] RmDir: Start checking dir inodes %d\n", dir_inode->size);
+    int i =  2*sizeof(struct dir_entry);
+    struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
+    Block* blk = NULL;
+    for (; i < dir_inode->size; i += sizeof(struct dir_entry)) {
+        int block_num = i / BLOCKSIZE;
+        int block_offset = i % BLOCKSIZE;
+
+        if (block_num < NUM_DIRECT) {
+            blk = read_block(dir_inode->direct[block_num]);
+            memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
+        } else {
+            int indirect_block_num = block_num - NUM_DIRECT;
+            Block* indirectBlk = read_block(dir_inode->indirect);
+            
+            int* indirect = (int*)indirectBlk->datum;
+            blk = read_block(indirect[indirect_block_num]);
+
+            memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
+        }
+        TracePrintf(1, "[SERVER][LOG] RmDir: Entry inum: %d!\n", entry->inum);
+        if (entry->inum != 0) {
+            TracePrintf(1, "[SERVER][LOG] RmDir: Directory not empty, cannot be removed!\n");
+            return ERROR;
+        }
+    }
+    free(entry);
+
+    int res = inodeDelEntry(parent_inum, dir_inum);
+    if (res == ERROR) {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to remove directory entry from its parent dir!\n");
+        return ERROR;
+    }
+    return res;
+}
+
 int create(char* pName, int type, int currInum) {
     char* lName = getLastName(pName);
     if (lName[0]== '\0') {

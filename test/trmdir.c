@@ -12,7 +12,10 @@ main()
     TracePrintf( 1, "MkDir test in progress\n");
     // int fd = Open("/sss");
     //Write(fd, "cccccccccccccccc", 16);
-    // printf("Create\n", Seek(fd, 11, SEEK_END));
+    printf("Mkdir: %d\n", MkDir("/hello"));
+    printf("Mkdir: %d\n", MkDir("/hello/hello"));
+    // printf("RmDir: %d\n", RmDir("/hello"));
+    printf("RmDir: %d\n", RmDir("/"));
     
 
     // This should return ERR since /sss is a file

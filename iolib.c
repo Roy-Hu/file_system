@@ -338,16 +338,29 @@ int MkDir(char *pathname) {
     Send((void*)msg, -FILE_SERVER);
     int res = (int)msg->reply;
     
-    TracePrintf( 1, "[CLIENT][LOG] Created file return %d: \n", res);
-
-    return res;
+    TracePrintf( 1, "[CLIENT][LOG] MkDir return %d: \n", res);
+    if (res==ERROR)
+        return ERROR;
 
     return 0;
 }
 
-// int RmDir(char *pathname) {
-//     return 0;
-// }
+int RmDir(char *pathname) {
+    TracePrintf( 1, "[CLIENT][LOG] RmDir Request for %s\n", pathname);
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    OperationType tp = RMDIR;
+    msg->type = (short) tp;
+    msg->inum = CURR_INODE;
+    msg->pathnamePtr = pathname;
+
+    Send((void*)msg, -FILE_SERVER);
+    int res =  (int)msg->reply;
+
+    TracePrintf( 1, "[CLIENT][LOG] RmDir file return %d: \n", res);
+
+    return res;
+}
 
 // int ChDir(char *pathname) {
 //     return 0;

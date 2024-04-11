@@ -10,4 +10,5 @@ make clean
 make all
 
 # Run the Yalnix binary with specified options
-/clear/courses/comp421/pub/bin/yalnix -ly 5 yfs test/communicate
+/clear/courses/comp421/pub/bin/yalnix -ly 5 yfs test/trmdir
+
