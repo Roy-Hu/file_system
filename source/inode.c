@@ -246,6 +246,11 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 memcpy(buf, blk->datum + block_offset, len);
             } else if (type == FILEWRITE || type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
+
+                if (size / BLOCKSIZE <= block_num) {
+                    inode->direct[block_num] = getFreeBlock();
+                }
+
                 WriteSector(inode->direct[block_num], (void *) blk->datum);
             } else {
                 TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
@@ -264,6 +269,12 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 memcpy(buf, blk->datum + block_offset, len);
             } else if (type == FILEWRITE || type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
+
+                if (size / BLOCKSIZE < block_num) {
+                    indirect[indirect_block_num] = getFreeBlock();
+                    WriteSector(inode->indirect, (void *) indirect);
+                }
+
                 WriteSector(indirect[indirect_block_num], (void *) blk->datum);
             } else {
                 TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
@@ -293,6 +304,18 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
     return totalbyte;
 }
 
+void incrementNlink(int inum) {
+    struct inode* inode = findInode(inum);
+    if (inode == NULL) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        return;
+    }
+    
+    inode->nlink++;
+
+    writeInode(inum, inode);
+}
+
 void inodeAddEntry(int parent_inum, int file_inum, char* name) {
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     entry->inum = file_inum;
@@ -303,11 +326,7 @@ void inodeAddEntry(int parent_inum, int file_inum, char* name) {
 
     inodeReadWrite(parent_inum, (void*)entry, END_POS, sizeof(struct dir_entry), DIRUPDATE);
 
-    struct inode* inode = findInode(file_inum);
-    if (inode != NULL) inode->nlink++;
-
-    inode = findInode(parent_inum);
-    TracePrintf( 1, "[SERVER][LOG] Inode %d's size = %d after add entry\n", parent_inum, inode->size);
+    incrementNlink(file_inum);
 }
 
 /* 
