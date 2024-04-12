@@ -20,3 +20,4 @@ test/tunlink*
 test/writeread*
 test/mkyfs*
 test/trmdir*
+test/tchdir.o

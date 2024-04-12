@@ -6,6 +6,8 @@
 
 int yfsOpen(int inode, char* pName, int *parent_inum);
 
+int yfsChDir(char *pName, int currInum);
+
 int yfsCreate(char* pName, int currInum);
 
 int yfsWrite(int inum, void* buf, int curpos, int size);

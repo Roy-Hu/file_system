@@ -171,6 +171,18 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case CHDIR: {
+            TracePrintf( 1, "[SERVER][LOG] Received ChDir request!\n");
+            char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
+            if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Chdir: Fail copy path name %s\n", pName);
+            }
+            // pathname currInode
+            msg->inum = yfsChDir(pName, msg->inum);
+            if (msg->inum == ERROR) {
+                msg->reply = ERROR;
+                TracePrintf( 1, "[SERVER][ERR] ChDir: Fail to remove dir\n");
+                break;
+            }
             break;
         }
         case STAT: {

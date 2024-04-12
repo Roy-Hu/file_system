@@ -3,10 +3,7 @@
 2. Finish handling functions to deal with requests send by the client (kernel) (request sending and receiving work!)
 3. Finish each functions in iolib.c
     - ### In progress
-        - RmDir
     - ### Need to be done:
-        - Readlink
-        - ChDir
         - Stat
         - Sync
         - Shutdown
@@ -19,6 +16,8 @@
         - Seek
         - Link
         - Unlink
+        - RmDir
+        - ChDir
 4. LRU cache
 5. Handle relative paths (haven't tested yet, but I think our work only works with absolute paths)
 ### use the bash for testing

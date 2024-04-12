@@ -13,10 +13,10 @@ main()
     // int fd = Open("/sss");
     //Write(fd, "cccccccccccccccc", 16);
     printf("Mkdir: %d\n", MkDir("/hello"));
-    printf("Mkdir: %d\n", MkDir("/hello/hello"));
-    printf("RmDir: %d\n", RmDir("/hello/hello"));
+    printf("Chdir: %d\n", ChDir("/hello/.././.."));
+    //printf("RmDir: %d\n", RmDir("/hello/hello"));
     // should return error
-    printf("RmDir: %d\n", RmDir("/hello/hello"));
+    //printf("RmDir: %d\n", RmDir("/hello/hello"));
     // printf("RmDir: %d\n", RmDir("/"));
     
 

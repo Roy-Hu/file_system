@@ -362,9 +362,27 @@ int RmDir(char *pathname) {
     return res;
 }
 
-// int ChDir(char *pathname) {
-//     return 0;
-// }
+int ChDir(char *pathname) {
+    TracePrintf( 1, "[CLIENT][LOG] CHDir Request for %s\n", pathname);
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    OperationType tp = CHDIR;
+    msg->type = (short) tp;
+    msg->inum = CURR_INODE;
+    msg->pathnamePtr = pathname;
+
+    Send((void*)msg, -FILE_SERVER);
+    int res =  (int)msg->reply;
+    
+    if (res == ERROR) {
+         TracePrintf( 1, "[CLIENT][ERR] CHDir file errored %d: \n", res);
+    }
+    CURR_INODE = msg->inum;
+
+    TracePrintf( 1, "[CLIENT][LOG] CHDir file return %d: \n", res);
+
+    return res;
+}
 
 // int Stat(char *pathname, struct Stat *statbuf) {
 //     return 0;

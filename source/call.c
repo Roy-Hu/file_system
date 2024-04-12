@@ -85,69 +85,86 @@ int yfsMkdir(char* pName, int currInum) {
 }
 
 int yfsRmDir(char* pName, int currInum) {
-    (void) pName;
-    (void) currInum;
-    // TracePrintf(1, "[SERVER][LOG] Remove Directory\n");
-    // int parent_inum = inumFind(pName, currInum);
-    // if (parent_inum == ERROR) {
-    //     TracePrintf(1, "[SERVER][LOG] RmDir: Fail to find parent_inum\n");
-    //     return ERROR;
-    // }
-    // char* lName = getLastName(pName);
-    // if (lName[0]=='\0') {
-    //     TracePrintf(1, "[SERVER][LOG] RmDir: Attempt to remove root directory\n");
-    //     return ERROR;
-    // }
-    // int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY);
-    // if (dir_inum == ERROR || dir_inum == ROOTINODE) {
-    //     TracePrintf(1, "[SERVER][LOG] RmDir: Fail to find dir_inum\n");
-    //     return ERROR;
-    // }
-    // struct inode* dir_inode = findInode(dir_inum);
-    // if (dir_inode->type != INODE_DIRECTORY || dir_inode == NULL) {
-    //     TracePrintf(1, "[SERVER][LOG] RmDir: Found Invalid Inode\n");
-    //     return ERROR;
-    // }
-    // TracePrintf(1, "[SERVER][LOG] RmDir: Start checking dir inodes %d\n", dir_inode->size);
-    // int i =  2*sizeof(struct dir_entry);
-    // struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
-    // Block* blk = NULL;
-    // for (; i < dir_inode->size; i += sizeof(struct dir_entry)) {
-    //     int block_num = i / BLOCKSIZE;
-    //     int block_offset = i % BLOCKSIZE;
+    // (void) pName;
+    // (void) currInum;
+    TracePrintf(1, "[SERVER][LOG] Remove Directory\n");
+    int parent_inum = inumFind(pName, currInum);
+    if (parent_inum == ERROR) {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to find parent_inum\n");
+        return ERROR;
+    }
+    char* lName = getLastName(pName);
+    if (lName[0]=='\0') {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Attempt to remove root directory\n");
+        return ERROR;
+    }
+    int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY);
+    if (dir_inum == ERROR || dir_inum == ROOTINODE) {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to find dir_inum\n");
+        return ERROR;
+    }
+    struct inode* dir_inode = findInode(dir_inum);
+    if (dir_inode->type != INODE_DIRECTORY || dir_inode == NULL) {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Found Invalid Inode\n");
+        return ERROR;
+    }
+    TracePrintf(1, "[SERVER][LOG] RmDir: Start checking dir inodes %d\n", dir_inode->size);
+    int i =  2*sizeof(struct dir_entry);
+    struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
+    Block* blk = NULL;
+    for (; i < dir_inode->size; i += sizeof(struct dir_entry)) {
+        int block_num = i / BLOCKSIZE;
+        int block_offset = i % BLOCKSIZE;
 
-    //     if (block_num < NUM_DIRECT) {
-    //         blk = read_block(dir_inode->direct[block_num]);
-    //         memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
-    //     } else {
-    //         int indirect_block_num = block_num - NUM_DIRECT;
-    //         Block* indirectBlk = read_block(dir_inode->indirect);
+        if (block_num < NUM_DIRECT) {
+            blk = read_block(dir_inode->direct[block_num]);
+            memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
+        } else {
+            int indirect_block_num = block_num - NUM_DIRECT;
+            Block* indirectBlk = read_block(dir_inode->indirect);
             
-    //         int* indirect = (int*)indirectBlk->datum;
-    //         blk = read_block(indirect[indirect_block_num]);
+            int* indirect = (int*)indirectBlk->datum;
+            blk = read_block(indirect[indirect_block_num]);
 
-    //         memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
-    //     }
-    //     TracePrintf(1, "[SERVER][LOG] RmDir: Entry inum: %d!\n", entry->inum);
-    //     if (entry->inum != 0) {
-    //         TracePrintf(1, "[SERVER][LOG] RmDir: Directory not empty, cannot be removed!\n");
-    //         return ERROR;
-    //     }
-    // }
-    // free(entry);
-    // printdirentry(2);
-    // TracePrintf(1, "[SERVER][LOG] RmDir: Trying to delete: %d of parent entry: %d!\n", dir_inum, parent_inum);
+            memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
+        }
+        TracePrintf(1, "[SERVER][LOG] RmDir: Entry inum: %d!\n", entry->inum);
+        if (entry->inum != 0) {
+            TracePrintf(1, "[SERVER][LOG] RmDir: Directory not empty, cannot be removed!\n");
+            return ERROR;
+        }
+    }
+    free(entry);
+    printdirentry(2);
+    TracePrintf(1, "[SERVER][LOG] RmDir: Trying to delete: %d of parent entry: %d!\n", dir_inum, parent_inum);
 
    
     // delete entry dir_inum from parent dir
-    // if (inodeDelEntry(parent_inum, dir_inum) == ERROR ) {
-    //     TracePrintf(1, "[SERVER][LOG] RmDir: Fail to remove directory entry from its parent dir!\n");
-    //     return ERROR;
-    // }
-    // // set dir_inum inode to free
-    // setInodeFree(dir_inum);
-    // printdirentry(parent_inum);
+    if (inodeDelEntry(parent_inum, dir_inum) == ERROR ) {
+        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to remove directory entry from its parent dir!\n");
+        return ERROR;
+    }
+    // set dir_inum inode to free
+    setInodeFree(dir_inum);
+    printdirentry(parent_inum);
     return 0;
+}
+
+int yfsChDir(char *pName, int currInum) {
+    int parent_inum = inumFind(pName, currInum);
+    if (parent_inum == ERROR) {
+        TracePrintf(1, "[SERVER][LOG] ChDir: Fail to find parent_inum\n");
+        return ERROR;
+    }
+    char* lName = getLastName(pName);
+    int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY);
+    if (dir_inum == ERROR ) {
+        TracePrintf(1, "[SERVER][LOG] ChDir: Fail to find dir_inum\n");
+        return ERROR;
+    }
+    // return the inode being changed to
+    TracePrintf(1, "[SERVER][LOG] ChDir: Succeed to change dir_inum to: %d\n", dir_inum);
+    return dir_inum;
 }
 
 int create(char* pName, int type, int currInum) {
