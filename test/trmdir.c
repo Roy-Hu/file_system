@@ -14,8 +14,9 @@ main()
     //Write(fd, "cccccccccccccccc", 16);
     printf("Mkdir: %d\n", MkDir("/hello"));
     printf("Mkdir: %d\n", MkDir("/hello/hello"));
-    // printf("RmDir: %d\n", RmDir("/hello"));
-    printf("RmDir: %d\n", RmDir("/"));
+    printf("RmDir: %d\n", RmDir("/hello/hello"));
+    printf("RmDir: %d\n", RmDir("/hello/hello"));
+    // printf("RmDir: %d\n", RmDir("/"));
     
 
     // This should return ERR since /sss is a file

@@ -9,4 +9,6 @@ Block* read_block(int bNum);
 
 void writeInode(int inum, struct inode* inode);
 
+void setInodeFree(int inum);
+
 #endif

@@ -22,6 +22,7 @@ void printInode(int inum) {
 void printdirentry(int inum) {
     TracePrintf( 1, "[SERVER][LOG] Print Inode entry %d\n", inum);
     struct inode* inode = findInode(inum);
+    //TracePrintf( 1, "[SERVER][LOG] Print Inode entry: found dir %d\n", inum);
     if (inode == NULL) {
         TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
         return;
@@ -138,7 +139,7 @@ int inodeDelete(int inum) {
 
     free(inode);
     freeInodes[inum] = 0;
-
+    TracePrintf( 1, "[SERVER][LOG] InodeDel: successfully deleted inode: %d \n", inum);
     return 0;
 }
 
@@ -181,7 +182,7 @@ int inodeDelEntry(int parentInum, int fileInum) {
             memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
         }
 
-        if (entry->inum == fileInum) {
+        if (entry->inum == fileInum && i >= 64) {
             TracePrintf( 1, "[SERVER][LOG] Found entry %s\n", entry->name);
             entry->inum = 0;
             

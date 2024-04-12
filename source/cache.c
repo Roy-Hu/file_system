@@ -43,6 +43,26 @@ struct inode* findInode(int inum) {
     return inode;
 }
 
+void setInodeFree(int inum) {
+    if (inum <= 0 || inum > INODE_NUM) {
+        TracePrintf( 1, "[SERVER][ERR] findInode: Invalid inum %d\n", inum);
+        return NULL;
+    }
+    
+    int block_num = getInodeBlockNum(inum);
+    int offset = (inum % INODE_PER_BLOCK) * INODESIZE;
+
+    Block* blk = read_block(block_num);
+    struct inode* inode = (struct inode*)malloc(sizeof(struct inode));
+    
+    memcpy(inode, blk->datum + offset, INODESIZE);
+    inode->type = INODE_FREE;
+    // copy back
+    memcpy(blk->datum + offset, inode, INODESIZE);
+    free(blk);
+
+}
+
 /* read a block, save it in a struct and return a pointer to the block */
 Block* read_block(int bNum) {
     Block* block = (Block*)malloc(sizeof(Block));
