@@ -8,6 +8,17 @@
 #include <comp421/yalnix.h>
 #include <stdio.h>
 
+void printInode(int inum) {
+    struct inode* inode = findInode(inum);
+    if (inode == NULL) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        return;
+    }
+
+    if (inode->type == INODE_REGULAR) TracePrintf( 1, "[SERVER][LOG] Inode %d, Size %d, Regular File\n", inum,inode->size);
+    else if (inode->type == INODE_DIRECTORY)TracePrintf( 1, "[SERVER][LOG] Inode %d, Size %d, Directory\n", inum, inode->size);
+}
+
 void printdirentry(int inum) {
     TracePrintf( 1, "[SERVER][LOG] Print Inode entry %d\n", inum);
     struct inode* inode = findInode(inum);
@@ -61,9 +72,14 @@ void printdirentry(int inum) {
  */
 void inodeCreate(int inum, int parent_inum, int type) {
     struct inode* inode = findInode(inum);
-
+    
+    inode = findInode(inum);
     inode->type = type;
     inode->nlink = 0;
+    
+    inode->indirect = getFreeBlock();
+
+    writeInode(inum, inode);
 
     if (type == INODE_DIRECTORY) {
         TracePrintf( 1, "[SERVER][LOG] Create Directory Inode\n");
@@ -82,9 +98,8 @@ void inodeCreate(int inum, int parent_inum, int type) {
         inode->size = 0;
     }
 
-    inode->indirect = getFreeBlock();
 
-    writeInode(inum, inode);
+    TracePrintf( 1, "[SERVER][LOG] Inode %d created\n", inum);
 }
 
 int inodeDelete(int inum) {
@@ -181,7 +196,6 @@ int inodeDelEntry(int parentInum, int fileInum) {
             break;
         }
         
-
         if (found) break;
     }
 
@@ -291,7 +305,8 @@ void inodeAddEntry(int parent_inum, int file_inum, char* name) {
     struct inode* inode = findInode(file_inum);
     if (inode != NULL) inode->nlink++;
 
-    
+    inode = findInode(parent_inum);
+    TracePrintf( 1, "[SERVER][LOG] Inode %d's size = %d after add entry\n", parent_inum, inode->size);
 }
 
 /* 
@@ -416,15 +431,13 @@ int inumRetrieve(int inum, char* name, int type) {
 
             free(blk);
 
-            TracePrintf( 1, "[SERVER][LOG] Retrieving %s inum: %d\n", name, dir_inum);
             struct inode* found_inode = findInode(dir_inum);
             if (found_inode == NULL) {
                 TracePrintf( 1, "[SERVER][ERR] Cannot find Inode %d\n", dir_inum);
                 return ERROR;
             }
 
-            if (found_inode->type == INODE_REGULAR) TracePrintf( 1, "[SERVER][LOG] Found directory entry %s inum %d, regular file\n", name, dir_inum);
-            else TracePrintf( 1, "[SERVER][LOG] Found directory entry %s inum %d, directory\n", name, dir_inum);
+            TracePrintf( 1, "[SERVER][ERR] find Inode %d\n", dir_inum);
 
             if (found_inode->type != type) {
                 TracePrintf( 1, "[SERVER][ERR] Found directory entry %s type and request type do not match\n", name);

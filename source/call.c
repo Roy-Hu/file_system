@@ -128,6 +128,7 @@ int yfsRmDir(char* pName, int currInum) {
     }
     free(entry);
 
+    printdirentry(dir_inum);
     int res = inodeDelEntry(parent_inum, dir_inum);
     if (res == ERROR) {
         TracePrintf(1, "[SERVER][LOG] RmDir: Fail to remove directory entry from its parent dir!\n");

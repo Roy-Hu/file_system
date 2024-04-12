@@ -27,4 +27,6 @@ int inodeDelEntry(int parentInum, int fileInum);
 
 void printdirentry(int inum);
 
+void printInode(int inum);
+
 #endif
