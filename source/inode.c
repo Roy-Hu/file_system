@@ -131,8 +131,15 @@ int inodeDelete(int inum) {
     if (blk != NULL) free(blk);
     if (indirectBlk != NULL) free(indirectBlk);
 
-    free(inode);
+    inode->type = INODE_FREE;
+    inode->size = 0;
+    
+    writeInode(inum, inode);
+    
     freeInodes[inum] = 0;
+
+    free(inode);
+
     TracePrintf( 1, "[SERVER][LOG] InodeDel: successfully deleted inode: %d \n", inum);
     return 0;
 }
