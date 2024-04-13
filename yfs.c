@@ -186,6 +186,25 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case STAT: {
+            TracePrintf( 1, "[SERVER][LOG] Received Stat request!\n");
+            char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
+            if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Stat: Fail copy path name %s\n", pName);
+            }
+
+            struct Stat* stat = (struct Stat*)malloc(sizeof(struct Stat));
+            msg->reply = yfsStat(pName, msg->inum, stat);
+            if (msg->reply == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Stat: Fail to stat file\n");
+                break;
+            }
+
+            if (CopyTo(pid, msg->bufPtr, (void*)stat, sizeof(struct Stat)) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Stat: Fail to copy stat\n");
+            }
+
+            free(stat);
+
             break;
         }
         case SYNC: {

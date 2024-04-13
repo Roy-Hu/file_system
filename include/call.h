@@ -2,6 +2,8 @@
 #define CALL_H
 
 #include <stdbool.h>
+
+#include <comp421/iolib.h>
 #include <comp421/filesystem.h>
 
 int yfsOpen(int inode, char* pName, int *parent_inum);
@@ -25,5 +27,7 @@ int yfsLink(char* oldname, char* newname);
 int yfsUnLink(char* pName);
 
 int yfsRmDir(char* pName, int currInum);
+
+int yfsStat(char* pName, int currInum, struct Stat *stat);
 
 #endif

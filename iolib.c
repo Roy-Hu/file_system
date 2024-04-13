@@ -384,9 +384,27 @@ int ChDir(char *pathname) {
     return res;
 }
 
-// int Stat(char *pathname, struct Stat *statbuf) {
-//     return 0;
-// }
+int Stat(char *pathname, struct Stat *statbuf) {
+    TracePrintf( 1, "[CLIENT][LOG] Stat Request for %s\n", pathname);
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    OperationType tp = STAT;
+    msg->type = (short) tp;
+    msg->inum = CURR_INODE;
+    msg->pathnamePtr = pathname;
+    msg->bufPtr = statbuf;
+
+    Send((void*)msg, -FILE_SERVER);
+    int res =  (int)msg->reply;
+    
+    if (res == ERROR) {
+         TracePrintf( 1, "[CLIENT][ERR] Stat file errored %d: \n", res);
+    }
+    
+    TracePrintf( 1, "[CLIENT][LOG] Stat %s, inum %d, type %d, nlink %d, size %d: \n", pathname, statbuf->inum, statbuf->type, statbuf->nlink, statbuf->size);
+
+    return 0;
+}
 
 int Sync(void) {
     return 0;

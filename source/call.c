@@ -264,3 +264,32 @@ int yfsUnLink(char* pName) {
 
     return inodeDelEntry(parentInum, fileinum);
 }
+
+int yfsStat(char* pName, int currInum, struct Stat *stat) {
+    char* lName = getLastName(pName);
+    if (lName[0]== '\0') {
+        TracePrintf( 1, "[SERVER][ERR] Empty last name!\n");
+        return ERROR;
+    }
+
+    // finding the file name
+    int parentInum;
+    int fileInum = yfsOpen(currInum, pName, &parentInum);
+    if (fileInum == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Fail to find file %s\n", pName);
+        return ERROR;
+    }
+
+    struct inode* inode = findInode(fileInum);
+    if (inode->type == INODE_DIRECTORY) {
+        TracePrintf( 1, "[SERVER][ERR] %s is a directory, cannot unlink\n", pName);
+        return ERROR;
+    }
+
+    stat->type = inode->type;
+    stat->nlink = inode->nlink;
+    stat->size = inode->size;
+    stat->inum = fileInum;
+
+    return 0;
+}
