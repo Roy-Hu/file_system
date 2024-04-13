@@ -151,7 +151,7 @@ int inodeDelEntry(int parentInum, int fileInum) {
         return ERROR;
     }
 
-    fileInode->nlink--;
+    decrementNlink(fileInum);
 
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     Block* blk = NULL;
@@ -325,6 +325,18 @@ void incrementNlink(int inum) {
     }
     
     inode->nlink++;
+
+    writeInode(inum, inode);
+}
+
+void decrementNlink(int inum) {
+    struct inode* inode = findInode(inum);
+    if (inode == NULL) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        return;
+    }
+    
+    inode->nlink--;
 
     writeInode(inum, inode);
 }

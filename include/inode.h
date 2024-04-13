@@ -29,4 +29,8 @@ void printdirentry(int inum);
 
 void printInode(int inum);
 
+void incrementNlink(int inum);
+
+void decrementNlink(int inum);
+
 #endif

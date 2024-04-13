@@ -79,8 +79,7 @@ int yfsMkdir(char* pName, int currInum) {
         return ERROR;
     }
     int res = create(pName, INODE_DIRECTORY, currInum);
-    printdirentry(2);
-    printdirentry(3);
+
     return res;
 }
 
@@ -135,7 +134,7 @@ int yfsRmDir(char* pName, int currInum) {
         }
     }
     free(entry);
-    printdirentry(2);
+
     TracePrintf(1, "[SERVER][LOG] RmDir: Trying to delete: %d of parent entry: %d!\n", dir_inum, parent_inum);
 
    
@@ -244,7 +243,7 @@ int yfsLink(char* oldname, char* newname) {
 
 int yfsUnLink(char* pName) {
     TracePrintf( 1, "[SERVER][LOG] UnLink %s\n", pName);
-    printdirentry(1);
+
     int parentInum;
     int fileinum = yfsOpen(INVALID_INUM, pName, &parentInum);
     if (fileinum == ERROR) {
