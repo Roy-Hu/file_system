@@ -19,5 +19,7 @@ test/tsymlink*
 test/tunlink*
 test/writeread*
 test/mkyfs*
-test/trmdir*
-test/tchdir.o
+test/trmdir
+test/tchdir
+test/tinderect
+test/tinderect2

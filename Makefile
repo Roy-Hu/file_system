@@ -25,7 +25,7 @@
 #	if you have a file named test1.c in this directory.
 #
 TEST = test/topen2 test/tcreate2 test/writeread test/sample1 test/communicate test/tlink test/tunlink2 test/trmdir \
-	   test/tchdir
+	   test/tchdir test/tinderect test/tinderect2
 
 #
 #	Define the list of everything to be made by this Makefile.
