@@ -20,7 +20,7 @@ void printInode(int inum) {
 }
 
 void printdirentry(int inum) {
-    TracePrintf( 1, "[SERVER][LOG] Print Inode entry %d\n", inum);
+    TracePrintf( 1, "[SERVER][INODE %d][LOG] Print Inode entry\n", inum);
     struct inode* inode = findInode(inum);
     //TracePrintf( 1, "[SERVER][LOG] Print Inode entry: found dir %d\n", inum);
     if (inode == NULL) {
@@ -58,8 +58,8 @@ void printdirentry(int inum) {
             return;
         }
 
-        if (fileInode->type == INODE_REGULAR) TracePrintf( 1, "[SERVER][LOG] Entry Name %s, Inum %d, Regular File\n", entry->name, entry->inum);
-        else TracePrintf( 1, "[SERVER][LOG] Entry Name %s, Inum %d, Directory\n", entry->name, entry->inum);
+        if (fileInode->type == INODE_REGULAR) TracePrintf( 1, "[SERVER][INODE %d][LOG] Entry Name %s, Inum %d, Regular File\n", inum, entry->name, entry->inum);
+        else TracePrintf( 1, "[SERVER][INODE %d][LOG] Entry Name %s, Inum %d, Directory\n", inum, entry->name, entry->inum);
     }
 
     free(entry);
@@ -84,12 +84,6 @@ void inodeCreate(int inum, int parent_inum, int type) {
 
     if (type == INODE_DIRECTORY) {
         TracePrintf( 1, "[SERVER][LOG] Create Directory Inode\n");
-        // for . and ..
-        inode->direct[0] = getFreeBlock();
-        if (inode->direct[0] == 0) {
-            TracePrintf( 1, "[SERVER][ERR] No free block available\n");
-            return;
-        }
 
         inodeAddEntry(inum, inum, ".");
         inodeAddEntry(inum, parent_inum, "..");
@@ -228,13 +222,43 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
     
     if (curpos == END_POS) curpos = inode->size;
 
+    TracePrintf( 1, "[SERVER][INODE %d][INF] Read/Write %d bytes from/to inode %d's\n", inum, size, inum);
+
+    int i;
+    for (i = 0; i < curpos + size; i += BLOCKSIZE) {
+        int block_num = i / BLOCKSIZE;
+
+        if (block_num == inode->size / BLOCKSIZE) {
+            if (inode->size % BLOCKSIZE == 0) {
+                TracePrintf( 1, "[SERVER][INODE %d][TRC] Allocate Block num %d\n", inum, block_num);
+                inode->direct[block_num] = getFreeBlock();
+            }
+        } else if (block_num > inode->size / BLOCKSIZE) {
+            if (block_num < NUM_DIRECT) {
+                inode->direct[block_num] = getFreeBlock();
+            } else {
+                Block* indirectBlk = read_block(inode->indirect);
+                int* indirect = (int*)indirectBlk->datum;
+
+                if (indirect[block_num - NUM_DIRECT] == 0) {
+                    indirect[block_num - NUM_DIRECT] = getFreeBlock();
+                    WriteSector(inode->indirect, (void *) indirect);
+                }
+
+                free(indirectBlk);
+            }
+
+            TracePrintf( 1, "[SERVER][INODE %d][TRC] Allocate Block num %d\n", inum, block_num);
+        }
+    }
+
     int totalbyte = 0;
     while (size > 0) {
         if (type == FILEREAD && curpos >= inode->size) break;
 
         int block_num = curpos / BLOCKSIZE;
         int block_offset = curpos % BLOCKSIZE;
-        TracePrintf( 1, "[SERVER][TRC] curpos %d, Block num %d, Block offset %d\n", curpos, block_num, block_offset);
+        TracePrintf( 1, "[SERVER][INODE %d][TRC] Read/Write at curpos %d, Block num %d, Block offset %d\n", inum, curpos, block_num, block_offset);
 
         int len = BLOCKSIZE - block_offset;
         if (len > size) len = size;
@@ -246,11 +270,6 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 memcpy(buf, blk->datum + block_offset, len);
             } else if (type == FILEWRITE || type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
-
-                if (size / BLOCKSIZE <= block_num) {
-                    inode->direct[block_num] = getFreeBlock();
-                }
-
                 WriteSector(inode->direct[block_num], (void *) blk->datum);
             } else {
                 TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
@@ -269,12 +288,6 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 memcpy(buf, blk->datum + block_offset, len);
             } else if (type == FILEWRITE || type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
-
-                if (size / BLOCKSIZE < block_num) {
-                    indirect[indirect_block_num] = getFreeBlock();
-                    WriteSector(inode->indirect, (void *) indirect);
-                }
-
                 WriteSector(indirect[indirect_block_num], (void *) blk->datum);
             } else {
                 TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
@@ -286,7 +299,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
         }
 
         totalbyte += len;
-        TracePrintf( 1, "[SERVER][TRC] Write %d to inode %d block %d\n", len, inum, block_num);
+        TracePrintf( 1, "[SERVER][INODE %d][TRC] Write %d to block %d\n", inum, len, block_num);
 
         curpos += len;
         buf += len;
@@ -322,7 +335,7 @@ void inodeAddEntry(int parent_inum, int file_inum, char* name) {
     // cannot use strcpy here since name is not necessarily null terminated
     setdirName(entry, name);
 
-    TracePrintf( 1, "[SERVER][LOG] Add %s to Inode %d's entry\n", name, parent_inum);
+    TracePrintf( 1, "[SERVER][INODE %d][LOG] Add %s to entry\n", parent_inum, name);
 
     inodeReadWrite(parent_inum, (void*)entry, END_POS, sizeof(struct dir_entry), DIRUPDATE);
 
