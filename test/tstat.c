@@ -20,7 +20,7 @@ main()
     printf("\n%d\n\n", Stat("/foo", stat));
     printf("stat inum: %d, type: %d, nlink: %d, size: %d\n", stat->inum, stat->type, stat->nlink, stat->size);
     printf("\n%d\n\n", Stat("/bar", stat));
-    printf("stat inum: %d, type: %d, nlink: %d, size: %d\n", stat->inum, stat->type, stat->nlink, stat->size);s
+    printf("stat inum: %d, type: %d, nlink: %d, size: %d\n", stat->inum, stat->type, stat->nlink, stat->size);
 
 	return 0;
 	//Shutdown();

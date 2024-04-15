@@ -1,11 +1,19 @@
 #include "cache.h"
-
+// #include "uthash.h"
 #include <comp421/filesystem.h>
 #include <comp421/yalnix.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+LRUNodeCache *nd_head = NULL;
+LRUBlockCache *blk_head = NULL;
+
+// size of node cache
+int n_size;
+// size of block cache
+int b_size;
 
 /* write the inode back to disk */
 void writeInode(int inum, struct inode* inode) {
@@ -46,7 +54,7 @@ struct inode* findInode(int inum) {
 void setInodeFree(int inum) {
     if (inum <= 0 || inum > INODE_NUM) {
         TracePrintf( 1, "[SERVER][ERR] findInode: Invalid inum %d\n", inum);
-        return NULL;
+        return;
     }
     
     int block_num = getInodeBlockNum(inum);
@@ -74,4 +82,34 @@ Block* read_block(int bNum) {
     }
 
     return block;
+}
+
+/* LRU Cache Interface */
+void init_node_lru(int nodeSize, int blkSize) {
+    n_size = nodeSize;
+    b_size = blkSize;
+}
+
+struct inode* lRUGetNode(int key) {
+    LRUNodeCache *cur = NULL;
+    HASH_FIND_INT(nd_head, &key, cur);
+    if (cur != NULL) {
+        HASH_DEL(nd_head, cur);
+        HASH_ADD_INT(nd_head, key, cur);
+        return cur->val;
+    }
+    // not found
+    return NULL;
+}
+
+struct block* lRUGetBlk(int key) {
+    LRUBlockCache *cur = NULL;
+    HASH_FIND_INT(blk_head, &key, cur);
+    if (cur != NULL) {
+        HASH_DEL(blk_head, cur);
+        HASH_ADD_INT(blk_head, key, cur);
+        return cur->val;
+    }
+    // not found
+    return NULL;
 }

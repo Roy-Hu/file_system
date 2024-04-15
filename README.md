@@ -3,6 +3,7 @@
 2. Finish handling functions to deal with requests send by the client (kernel) (request sending and receiving work!)
 3. Finish each functions in iolib.c
     - ### In progress
+        - LRU cache: use a library called [uthash](https://troydhanson.github.io/uthash/userguide.html#_iterating_and_sorting) for creating a hashtable
     - ### Need to be done:
         - Stat
         - Sync
