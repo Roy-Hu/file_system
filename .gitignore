@@ -24,4 +24,4 @@ test/tchdir
 test/tinderect
 test/tinderect2
 test/tstat
-test/cache
+test/tcache
