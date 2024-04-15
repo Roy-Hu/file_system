@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "yfs.h"
+#include "log.h"
 
 /* keep track of current innode */
 int CURR_INODE = ROOTINODE;
@@ -79,7 +80,7 @@ void init() {
 int Open(char *pathname) {
     if (!isInit) init();
 
-    TracePrintf( 1, "[CLIENT][LOG] Open Request for %s\n", pathname);
+    TracePrintf( LOG, "[CLIENT][LOG] Open Request for %s\n", pathname);
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = OPEN;
@@ -93,12 +94,12 @@ int Open(char *pathname) {
     if (res != ERROR) {
         int fd = findNewFd();
         if (fd == -1) {
-            TracePrintf( 1, "[CLIENT][ERR] No more file can be opened\n");
+            TracePrintf( ERR, "[CLIENT][ERR] No more file can be opened\n");
             free(msg);
             return ERROR;
         }
 
-        TracePrintf( 1, "[CLIENT][LOG] Open file inum %d, fd %d: \n", msg->inum, fd);
+        TracePrintf( LOG, "[CLIENT][LOG] Open file inum %d, fd %d: \n", msg->inum, fd);
 
         openFile(fd, msg->inum, 0);
 
@@ -106,7 +107,7 @@ int Open(char *pathname) {
 
         return fd;
     } else {
-        TracePrintf( 1, "[CLIENT][ERR] Fail to open file\n");
+        TracePrintf( ERR, "[CLIENT][ERR] Fail to open file\n");
         free(msg);
 
         return res;
@@ -119,22 +120,22 @@ int Open(char *pathname) {
 /* This request closes the open file specified by the file descriptor number fd . If fd is not the descriptor
 number of a file currently open in this process, this request returns ERROR; otherwise, it returns 0. */
 int Close(int fd) {
-    TracePrintf( 1, "[CLIENT][LOG] Close Request for fd: %d\n", fd);
+    TracePrintf( LOG, "[CLIENT][LOG] Close Request for fd: %d\n", fd);
     if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
-        TracePrintf( 1, "[CLIENT][ERR] Close: Not a valid fd: %d number!\n", fd);
+        TracePrintf( ERR, "[CLIENT][ERR] Close: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
     closeFile(fd);
 
-    TracePrintf( 1, "[CLIENT][LOG] Close: Closed file successfully with fd: %d number!\n", fd);
+    TracePrintf( LOG, "[CLIENT][LOG] Close: Closed file successfully with fd: %d number!\n", fd);
     return 0;
 }
 
 int Create(char *pathname) {
     if (!isInit) init();
 
-    TracePrintf( 1, "[CLIENT][LOG] Create Request for %s\n", pathname);
+    TracePrintf( LOG, "[CLIENT][LOG] Create Request for %s\n", pathname);
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = CREATE;
@@ -148,18 +149,18 @@ int Create(char *pathname) {
     if (res != ERROR) {
         int fd = findNewFd();
         if (fd == -1) {
-            TracePrintf( 1, "[CLIENT][ERR] No more file can be opened\n");
+            TracePrintf( ERR, "[CLIENT][ERR] No more file can be opened\n");
             return ERROR;
         }
 
-        TracePrintf( 1, "[CLIENT][LOG] Created file inum %d, fd %d: \n", msg->inum, fd);
+        TracePrintf( LOG, "[CLIENT][LOG] Created file inum %d, fd %d: \n", msg->inum, fd);
 
         openFile(fd, msg->inum, 0);
 
         free(msg);
         return fd;
     } else {
-        TracePrintf( 1, "[CLIENT][ERR] Fail to create file\n");
+        TracePrintf( ERR, "[CLIENT][ERR] Fail to create file\n");
 
         free(msg);
         return res;
@@ -170,7 +171,7 @@ int Read(int fd, void *buf, int size) {
     // init fd
     if (!isInit) init();
     if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
-        TracePrintf( 1, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
+        TracePrintf( ERR, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
@@ -190,12 +191,12 @@ int Read(int fd, void *buf, int size) {
 
     if (res != ERROR) {
         int byte = msg->size;
-        TracePrintf( 1, "[CLIENT][LOG] Read %d bytes at fd %d: \n", byte, fd);
+        TracePrintf( LOG, "[CLIENT][LOG] Read %d bytes at fd %d: \n", byte, fd);
         updateFile(fd, files[fd].curPos + byte);
 
         return byte;
     } else {
-        TracePrintf( 1, "[CLIENT][ERR] Fail to create file\n");
+        TracePrintf( ERR, "[CLIENT][ERR] Fail to create file\n");
 
         free(msg);
         return res;
@@ -208,7 +209,7 @@ int Write(int fd, void *buf, int size) {
     // init fd
     if (!isInit) init();
     if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
-        TracePrintf( 1, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
+        TracePrintf( ERR, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
@@ -228,12 +229,12 @@ int Write(int fd, void *buf, int size) {
 
     if (res != ERROR) {
         int byte = msg->size;
-        TracePrintf( 1, "[CLIENT][LOG] Write %d bytes at fd %d: \n", byte, fd);
+        TracePrintf( LOG, "[CLIENT][LOG] Write %d bytes at fd %d: \n", byte, fd);
         updateFile(fd, files[fd].curPos + byte);
 
         return byte;
     } else {
-        TracePrintf( 1, "[CLIENT][ERR] Fail to create file\n");
+        TracePrintf( ERR, "[CLIENT][ERR] Fail to create file\n");
 
         free(msg);
         return res;
@@ -244,7 +245,7 @@ int Write(int fd, void *buf, int size) {
 
 int Seek(int fd, int offset, int whence) {
     if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
-        TracePrintf( 1, "[CLIENT][ERR] Seek: Not a valid fd: %d number!\n", fd);
+        TracePrintf( ERR, "[CLIENT][ERR] Seek: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
@@ -266,19 +267,19 @@ int Seek(int fd, int offset, int whence) {
             // should return the end of the file
             short res = msg->reply;
             if (res == ERROR) {
-                TracePrintf( 1, "[CLIENT][ERR] Seek: fail to find current fileszie\n");
+                TracePrintf( ERR, "[CLIENT][ERR] Seek: fail to find current fileszie\n");
                 return ERROR;
             }
             seekPos = res + offset;
             break;
         }
         default: {
-            TracePrintf( 1, "[CLIENT][ERR] Seek: Not a valid whence\n");
+            TracePrintf( ERR, "[CLIENT][ERR] Seek: Not a valid whence\n");
             break;
         }
     }
     if (seekPos < 0) {
-        TracePrintf( 1, "[CLIENT][ERR] Seek: seekPos goes beyond the beginning of the file\n");
+        TracePrintf( ERR, "[CLIENT][ERR] Seek: seekPos goes beyond the beginning of the file\n");
         return ERROR;
     }
 
@@ -330,7 +331,7 @@ int Unlink(char *pathname) {
 // }
 
 int MkDir(char *pathname) {
-    TracePrintf( 1, "[CLIENT][LOG] MkDir Request for %s\n", pathname);
+    TracePrintf( LOG, "[CLIENT][LOG] MkDir Request for %s\n", pathname);
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = MKDIR;
@@ -341,7 +342,7 @@ int MkDir(char *pathname) {
     Send((void*)msg, -FILE_SERVER);
     int res = (int)msg->reply;
     
-    TracePrintf( 1, "[CLIENT][LOG] MkDir return %d: \n", res);
+    TracePrintf( LOG, "[CLIENT][LOG] MkDir return %d: \n", res);
     if (res==ERROR)
         return ERROR;
 
@@ -349,7 +350,7 @@ int MkDir(char *pathname) {
 }
 
 int RmDir(char *pathname) {
-    TracePrintf( 1, "[CLIENT][LOG] RmDir Request for %s\n", pathname);
+    TracePrintf( LOG, "[CLIENT][LOG] RmDir Request for %s\n", pathname);
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = RMDIR;
@@ -360,13 +361,13 @@ int RmDir(char *pathname) {
     Send((void*)msg, -FILE_SERVER);
     int res =  (int)msg->reply;
 
-    TracePrintf( 1, "[CLIENT][LOG] RmDir file return %d: \n", res);
+    TracePrintf( LOG, "[CLIENT][LOG] RmDir file return %d: \n", res);
 
     return res;
 }
 
 int ChDir(char *pathname) {
-    TracePrintf( 1, "[CLIENT][LOG] CHDir Request for %s\n", pathname);
+    TracePrintf( LOG, "[CLIENT][LOG] CHDir Request for %s\n", pathname);
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = CHDIR;
@@ -378,17 +379,17 @@ int ChDir(char *pathname) {
     int res =  (int)msg->reply;
     
     if (res == ERROR) {
-         TracePrintf( 1, "[CLIENT][ERR] CHDir file errored %d: \n", res);
+         TracePrintf( ERR, "[CLIENT][ERR] CHDir file errored %d: \n", res);
     }
     CURR_INODE = msg->inum;
 
-    TracePrintf( 1, "[CLIENT][LOG] CHDir file return %d: \n", res);
+    TracePrintf( ERR, "[CLIENT][LOG] CHDir file return %d: \n", res);
 
     return res;
 }
 
 int Stat(char *pathname, struct Stat *statbuf) {
-    TracePrintf( 1, "[CLIENT][LOG] Stat Request for %s\n", pathname);
+    TracePrintf( LOG, "[CLIENT][LOG] Stat Request for %s\n", pathname);
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = STAT;
@@ -401,10 +402,10 @@ int Stat(char *pathname, struct Stat *statbuf) {
     int res =  (int)msg->reply;
     
     if (res == ERROR) {
-         TracePrintf( 1, "[CLIENT][ERR] Stat file errored %d: \n", res);
+         TracePrintf( ERR, "[CLIENT][ERR] Stat file errored %d: \n", res);
     }
     
-    TracePrintf( 1, "[CLIENT][LOG] Stat %s, inum %d, type %d, nlink %d, size %d: \n", pathname, statbuf->inum, statbuf->type, statbuf->nlink, statbuf->size);
+    TracePrintf( LOG, "[CLIENT][LOG] Stat %s, inum %d, type %d, nlink %d, size %d: \n", pathname, statbuf->inum, statbuf->type, statbuf->nlink, statbuf->size);
 
     return 0;
 }

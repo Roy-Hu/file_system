@@ -4,6 +4,7 @@
 #include "disk.h"
 #include "helper.h"
 #include "call.h"
+#include "log.h"
 
 #include <comp421/yalnix.h>
 #include <comp421/iolib.h>
@@ -18,41 +19,41 @@ int msgHandler(Messgae* msg, int pid) {
 
     switch(myType) {
         case OPEN: {
-            TracePrintf( 1, "[SERVER][LOG] Received Open request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Open request!\n");
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Open: Fail to copy path name %s\n", pName);
+                TracePrintf( ERR, "[SERVER][ERR] Open: Fail to copy path name %s\n", pName);
             }
 
             int parent_inum;
             msg->inum = yfsOpen(msg->inum, pName, &parent_inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] Open: Fail to open file\n");
+                TracePrintf( ERR, "[SERVER][ERR] Open: Fail to open file\n");
                 break;
             }
 
             break;
         }
         case CREATE: {
-            TracePrintf( 1, "[SERVER][LOG] Received Create request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Create request!\n");
 
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
+                TracePrintf( ERR, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
             }
 
             msg->inum = yfsCreate(pName, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] Create: Fail to create file\n");
+                TracePrintf( ERR, "[SERVER][ERR] Create: Fail to create file\n");
                 break;
             }
 
             break;
         }
         case READ: {
-            TracePrintf( 1, "[SERVER][LOG] Received Read request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Read request!\n");
 
             char* buf = (char *)malloc(msg->size * sizeof(char));
 
@@ -60,79 +61,79 @@ int msgHandler(Messgae* msg, int pid) {
             msg->size = yfsRead(msg->inum, buf, msg->pos, msg->size);
 
             if (CopyTo(pid, msg->bufPtr, (void*)buf, msg->size) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Create: Fail copy to buf\n");
+                TracePrintf( ERR, "[SERVER][ERR] Create: Fail copy to buf\n");
             }
 
             if (msg->size == ERROR) {
                 msg->pos = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] Read: Fail to read file\n");
+                TracePrintf( ERR, "[SERVER][ERR] Read: Fail to read file\n");
                 break;
             }
 
             break;
         }
         case WRITE: {
-            TracePrintf( 1, "[SERVER][LOG] Received Write request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Write request!\n");
 
             char* buf = (char *)malloc(msg->size * sizeof(char));
             if (CopyFrom(pid, (void*)buf, msg->bufPtr, msg->size) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Create: Fail copy from buf\n");
+                TracePrintf( ERR, "[SERVER][ERR] Create: Fail copy from buf\n");
             }
 
             msg->size = yfsWrite(msg->inum, (void*)buf, msg->pos, msg->size);
             if (msg->size == ERROR) {
                 msg->reply = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] Read: Fail to read file\n");
+                TracePrintf( ERR, "[SERVER][ERR] Read: Fail to read file\n");
                 break;
             }
 
-            TracePrintf( 1, "[SERVER][ERR] Write %d byte tp msg\n", msg->size);
+            TracePrintf( ERR, "[SERVER][ERR] Write %d byte tp msg\n", msg->size);
 
             break;
         }
         case SEEK: {
-            TracePrintf( 1, "[SERVER][LOG] Received Seek request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Seek request!\n");
             msg->reply = yfsSeek(msg->inum);
             if (msg->reply == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Seek: Fail to return inum of the file\n");
+                TracePrintf( ERR, "[SERVER][ERR] Seek: Fail to return inum of the file\n");
                 break;
             }
             break;
         }
         case LINK: {
-            TracePrintf( 1, "[SERVER][LOG] Received Link request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Link request!\n");
             char* oldname = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)oldname, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Link: Fail copy old name %s\n", oldname);
+                TracePrintf( ERR, "[SERVER][ERR] Link: Fail copy old name %s\n", oldname);
             }
 
             char* newname = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)newname, msg->bufPtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Link: Fail copy new name %s\n", newname);
+                TracePrintf( ERR, "[SERVER][ERR] Link: Fail copy new name %s\n", newname);
             }
 
             // pos will be the cur dir inum while LINK
             msg->reply = yfsLink(oldname, newname, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] Link: Fail to link %s to %s\n", newname, oldname);
+                TracePrintf( ERR, "[SERVER][ERR] Link: Fail to link %s to %s\n", newname, oldname);
                 break;
             }
 
             break;
         }
         case UNLINK: {
-            TracePrintf( 1, "[SERVER][LOG] Received Unlink request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Unlink request!\n");
 
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
+                TracePrintf( ERR, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
             }
 
             msg->reply = yfsUnLink(pName, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] UnLink: Fail to unlink %s\n", pName);
+                TracePrintf( ERR, "[SERVER][ERR] UnLink: Fail to unlink %s\n", pName);
                 break;
             }
 
@@ -141,68 +142,68 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case MKDIR: {
-            TracePrintf( 1, "[SERVER][LOG] Received Mkdir request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Mkdir request!\n");
 
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
+                TracePrintf( ERR, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
             }
 
             msg->inum = yfsMkdir(pName, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] Create: Fail to create dir\n");
+                TracePrintf( ERR, "[SERVER][ERR] Create: Fail to create dir\n");
                 break;
             }
 
             break;
         }
         case RMDIR: {
-            TracePrintf( 1, "[SERVER][LOG] Received RmDir request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received RmDir request!\n");
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
+                TracePrintf( ERR, "[SERVER][ERR] Mkdir: Fail copy path name %s\n", pName);
             }
             msg->inum = yfsRmDir(pName, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] RmDir: Fail to remove dir\n");
+                TracePrintf( ERR, "[SERVER][ERR] RmDir: Fail to remove dir\n");
                 break;
             }
 
             break;
         }
         case CHDIR: {
-            TracePrintf( 1, "[SERVER][LOG] Received ChDir request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received ChDir request!\n");
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Chdir: Fail copy path name %s\n", pName);
+                TracePrintf( ERR, "[SERVER][ERR] Chdir: Fail copy path name %s\n", pName);
             }
             // pathname currInode
             msg->inum = yfsChDir(pName, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
-                TracePrintf( 1, "[SERVER][ERR] ChDir: Fail to remove dir\n");
+                TracePrintf( ERR, "[SERVER][ERR] ChDir: Fail to remove dir\n");
                 break;
             }
             break;
         }
         case STAT: {
-            TracePrintf( 1, "[SERVER][LOG] Received Stat request!\n");
+            TracePrintf( LOG, "[SERVER][LOG] Received Stat request!\n");
             char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
             if (CopyFrom(pid, (void*)pName, msg->pathnamePtr, MAXPATHNAMELEN) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Stat: Fail copy path name %s\n", pName);
+                TracePrintf( ERR, "[SERVER][ERR] Stat: Fail copy path name %s\n", pName);
             }
 
             struct Stat* stat = (struct Stat*)malloc(sizeof(struct Stat));
             msg->reply = yfsStat(pName, msg->inum, stat);
             if (msg->reply == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Stat: Fail to stat file\n");
+                TracePrintf( ERR, "[SERVER][ERR] Stat: Fail to stat file\n");
                 break;
             }
 
             if (CopyTo(pid, msg->bufPtr, (void*)stat, sizeof(struct Stat)) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Stat: Fail to copy stat\n");
+                TracePrintf( ERR, "[SERVER][ERR] Stat: Fail to copy stat\n");
             }
 
             free(stat);
@@ -231,7 +232,7 @@ int msgHandler(Messgae* msg, int pid) {
  *  
 **/
 void init() {
-    TracePrintf( 1, "[SERVER][LOG] Start YFS Initialization\n");
+    TracePrintf( LOG, "[SERVER][LOG] Start YFS Initialization\n");
     // read the first block to get the header
     Block* block = read_block(1);
     struct fs_header* header = (struct fs_header*)malloc(sizeof(struct fs_header));
@@ -293,10 +294,10 @@ int main(int argc, char** argv) {
     (void) argc;
     // initialization
     init();
-    TracePrintf( 1, "[SERVER][TRC] Init succeed\n");
+    TracePrintf( TRC, "[SERVER][TRC] Init succeed\n");
 
     if (Register(FILE_SERVER) != 0) return ERROR;
-    TracePrintf( 1, "[SERVER][TRC] Register succeed\n");
+    TracePrintf( TRC, "[SERVER][TRC] Register succeed\n");
 
     // It should then Fork and Exec a first client user process.
     if(Fork() == 0) {
@@ -305,18 +306,18 @@ int main(int argc, char** argv) {
 
     // receiving messages
     while(1) {
-        TracePrintf( 1, "\n[SERVER][LOG] Start receiving message\n");
+        TracePrintf( LOG, "\n[SERVER][LOG] Start receiving message\n");
         Messgae msg;
         assert(sizeof(msg) == 32);
 
         int pid = Receive(&msg);
         if (pid == ERROR) {
-            TracePrintf( 1, "[SERVER][ERR] Fail to receive msg\n");
+            TracePrintf( ERR, "[SERVER][ERR] Fail to receive msg\n");
             return ERROR;
         }
 
         if (pid == 0) {
-            TracePrintf( 1, "[SERVER][LOG] Halt at pid 0 to prevent deadlock\n");
+            TracePrintf( LOG, "[SERVER][LOG] Halt at pid 0 to prevent deadlock\n");
             Halt();
         }
 

@@ -9,7 +9,7 @@
 int
 main()
 {
-    TracePrintf( 1, "MkDir test in progress\n");
+    printf("MkDir test in progress\n");
     // int fd = Open("/sss");
     //Write(fd, "cccccccccccccccc", 16);
     printf("Mkdir: %d\n", MkDir("/hello"));

@@ -1,4 +1,5 @@
 #include "disk.h"
+#include "log.h"
 
 #include <comp421/yalnix.h>
 #include <stdlib.h>
@@ -24,7 +25,7 @@ int getFreeBlock() {
         }
     }
     
-    TracePrintf( 1, "[SERVER][ERR] No free block available\n");
+    TracePrintf( ERR, "[SERVER][ERR] No free block available\n");
     return ERROR;
 }
 
@@ -42,7 +43,7 @@ int getFreeInode() {
         }
     }
 
-    TracePrintf( 1, "[SERVER][ERR] No free inode available\n");
+    TracePrintf( ERR, "[SERVER][ERR] No free inode available\n");
 
     return ERROR;
 }

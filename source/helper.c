@@ -1,4 +1,5 @@
 #include "helper.h"
+#include "log.h"
 
 #include <comp421/yalnix.h>
 #include <comp421/filesystem.h>
@@ -14,14 +15,14 @@
  */
 int normPathname(char* pathname) {
     if (pathname == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Pathname is NULL\n");
+        TracePrintf( ERR, "[SERVER][ERR] Pathname is NULL\n");
         return ERROR;
     }
 
     int len = strlen(pathname);
 
     if (len == 0) {
-        TracePrintf( 1, "[SERVER][ERR] Pathname is empty\n");
+        TracePrintf( ERR, "[SERVER][ERR] Pathname is empty\n");
         return ERROR;
     }
 

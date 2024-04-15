@@ -1,4 +1,6 @@
 #include "cache.h"
+#include "log.h"
+
 // #include "uthash.h"
 #include <comp421/yalnix.h>
 
@@ -17,7 +19,7 @@ unsigned int b_size;
 /* write the inode back to disk */
 int writeInode(int inum, struct inode* inode) {
     if (inum <= 0 || inum > INODE_NUM) {
-        TracePrintf( 1, "[SERVER][ERR] writeInode: Invalid inum %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] writeInode: Invalid inum %d\n", inum);
         return ERROR;
     }
 
@@ -34,7 +36,7 @@ int writeInode(int inum, struct inode* inode) {
 /* find the inode given the inum */
 struct inode* findInode(int inum) {
     if (inum <= 0 || (INODE_NUM != 0 && inum > INODE_NUM)) {
-        TracePrintf( 1, "[SERVER][ERR] findInode: Invalid inum %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] findInode: Invalid inum %d\n", inum);
         return NULL;
     }
     
@@ -47,7 +49,7 @@ Block* read_block(int bNum) {
 
     int res = ReadSector(bNum, (void *) block->datum);
     if (res == ERROR) {
-        TracePrintf( 1, "[SERVER][ERR] ReadSector failed\n");
+        TracePrintf( ERR, "[SERVER][ERR] ReadSector failed\n");
         return NULL;
     }
 
@@ -71,14 +73,14 @@ struct inode* lRUGetNode(int key) {
     HASH_FIND_INT(nd_head, &key, cur);
 
     if (cur != NULL) {
-        TracePrintf( 1, "[CACHE][LOG] Find indoe %d in cache\n", key);
+        TracePrintf( INF, "[SERVER][CACHE][INF] Find indoe %d in cache\n", key);
 
         HASH_DEL(nd_head, cur);
     } else {
-        TracePrintf( 1, "[CACHE][LOG] Can't find indoe %d in cache\n", key);
+        TracePrintf( INF, "[SERVER][CACHE][INF] Can't find indoe %d in cache\n", key);
 
         if (HASH_COUNT(nd_head) == INODE_CACHESIZE) {
-            TracePrintf( 1, "[CACHE][LOG] Cache is full, evict node\n");
+            TracePrintf( TRC, "[SERVER][CACHE][TRC] Cache is full, evict node\n");
 
             if (nd_head->dirty) lRUWriteNode(nd_head);
 
@@ -89,7 +91,10 @@ struct inode* lRUGetNode(int key) {
         int offset = (key % INODE_PER_BLOCK) * INODESIZE;
 
         Block* blk = read_block(block_num);
-        if (blk == NULL) return NULL;
+        if (blk == NULL) {
+            TracePrintf( ERR, "[SERVER][CACHE][ERR] Read block %d failed\n", block_num);
+            return NULL;
+        }
 
         struct inode* inode = (struct inode*)malloc(sizeof(struct inode));
 
@@ -98,8 +103,9 @@ struct inode* lRUGetNode(int key) {
         cur = (LRUNodeCache *)malloc(sizeof(LRUNodeCache));
         cur->val = inode;
         cur->key = key;
+        cur->dirty = false;
 
-        TracePrintf( 1, "[CACHE][LOG] Add indoe %d in cache\n", key);
+        TracePrintf( INF, "[SERVER][CACHE][INF] Add indoe %d in cache\n", key);
     }
 
     HASH_ADD_INT(nd_head, key, cur);
@@ -112,14 +118,14 @@ struct block* lRUGetBlk(int key) {
 
     HASH_FIND_INT(blk_head, &key, cur);
     if (cur != NULL) { // found, move it to the head
-        TracePrintf( 1, "[CACHE][LOG] Find block %d in cache\n", key);
+        TracePrintf( INF, "[SERVER][CACHE][INF] Find block %d in cache\n", key);
 
         HASH_DEL(blk_head, cur);
     } else {
-        TracePrintf( 1, "[CACHE][LOG] Can't find block %d in cache\n", key);
+        TracePrintf( INF, "[SERVER][CACHE][INF] Can't find block %d in cache\n", key);
 
         if (HASH_COUNT(blk_head) == BLOCK_CACHESIZE) {
-            TracePrintf( 1, "[CACHE][LOG] Cache is full, evict node\n");
+            TracePrintf( TRC, "[SERVER][CACHE][TRC] Cache is full, evict node\n");
 
             if (blk_head->dirty) lRUWriteBlk(blk_head);
 
@@ -130,15 +136,16 @@ struct block* lRUGetBlk(int key) {
 
         int res = ReadSector(key, (void *) block->datum);
         if (res == ERROR) {
-            TracePrintf( 1, "[CACHE][ERR] ReadSector failed\n");
+            TracePrintf( ERR, "[SERVER][CACHE][ERR] ReadSector failed\n");
             return NULL;
         }
 
         cur = (LRUBlockCache *)malloc(sizeof(LRUBlockCache));
         cur->val = block;
         cur->key = key;
+        cur->dirty = false;
 
-        TracePrintf( 1, "[CACHE][LOG] Add block %d in cache\n", key);
+        TracePrintf( INF, "[SERVER][CACHE][INF] Add block %d in cache\n", key);
     }
 
     HASH_ADD_INT(blk_head, key, cur);
@@ -153,16 +160,12 @@ void lRUNodePut(int key, struct inode* value) {
     if (cur != NULL) {
         HASH_DEL(nd_head, cur);
 
-        cur->key = key;
-        cur->val = value;
-        cur->dirty = true;
-
-        TracePrintf( 1, "[CACHE][LOG] Found the node, replace it with new value!\n");
+        TracePrintf( INF, "[SERVER][CACHE][INF] Found the node, replace it with new value!\n");
     } else { // insert new
-        TracePrintf( 1, "[CACHE][LOG] Can't find inode %d in cache\n", key);
+        TracePrintf( INF, "[SERVER][CACHE][INF] Can't find inode %d in cache\n", key);
 
         if (HASH_COUNT(nd_head) == INODE_CACHESIZE) {
-            TracePrintf( 1, "[CACHE][LOG] Cache is full, evict node\n");
+            TracePrintf( TRC, "[SERVER][CACHE][TRC] Cache is full, evict node\n");
 
             if (nd_head->dirty) lRUWriteNode(nd_head);
 
@@ -170,10 +173,11 @@ void lRUNodePut(int key, struct inode* value) {
         }
 
         cur = (LRUNodeCache *)malloc(sizeof(LRUNodeCache));
-        cur->key = key;
-        cur->val = value;
-        cur->dirty = true;
     }
+
+    cur->key = key;
+    cur->val = value;
+    cur->dirty = true;
 
     HASH_ADD_INT(nd_head, key, cur);
 
@@ -187,16 +191,12 @@ void lRUBlockPut(int key, struct block* value) {
     if (cur != NULL) {
         HASH_DEL(blk_head, cur);
 
-        cur->key = key;
-        cur->val = value;
-        cur->dirty = true;
-
-        TracePrintf( 1, "[CACHE][LOG] Found the block, replace it with new value!\n");
+        TracePrintf( INF, "[SERVER][CACHE][INF] Found the block, replace it with new value!\n");
     } else { // insert new
-        TracePrintf( 1, "[CACHE][LOG] Can't find block %d in cache\n", key);
+        TracePrintf( INF, "[SERVER][CACHE][INF] Can't find block %d in cache\n", key);
 
         if (HASH_COUNT(blk_head) == BLOCK_CACHESIZE) {
-            TracePrintf( 1, "[CACHE][LOG] Cache is full, evict node\n");
+            TracePrintf( TRC, "[SERVER][CACHE][TRC] Cache is full, evict node\n");
 
             if (blk_head->dirty) lRUWriteBlk(blk_head);
 
@@ -204,12 +204,11 @@ void lRUBlockPut(int key, struct block* value) {
         }
 
         cur = (LRUBlockCache *)malloc(sizeof(LRUBlockCache));
-        cur->key = key;
-        cur->val = value;
-        cur->dirty = true;
-
-        TracePrintf( 1, "[CACHE][LOG] Didn't find the block, create a new entry in cache!\n");
     }
+
+    cur->key = key;
+    cur->val = value;
+    cur->dirty = true;
 
     HASH_ADD_INT(blk_head, key, cur);
 
@@ -217,7 +216,7 @@ void lRUBlockPut(int key, struct block* value) {
 }
 
 void lRUWriteNode(LRUNodeCache *cahce) {
-    TracePrintf( 1, "[CACHE][LOG] Write inode %d to disk\n", cahce->key);
+    TracePrintf( INF, "[SERVER][CACHE][INF] Write inode %d to disk\n", cahce->key);
 
     int block_num = getInodeBlockNum(cahce->key);
     int offset = (cahce->key % INODE_PER_BLOCK) * INODESIZE;
@@ -231,7 +230,7 @@ void lRUWriteNode(LRUNodeCache *cahce) {
 
 
 void lRUWriteBlk(LRUBlockCache *cahce) {
-    TracePrintf( 1, "[CACHE][LOG] Write block %d to disk\n", cahce->key);
+    TracePrintf( INF, "[CACHE][INF] Write block %d to disk\n", cahce->key);
 
     WriteSector(cahce->key, (void *) cahce->val->datum);
 }

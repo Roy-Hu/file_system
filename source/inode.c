@@ -1,6 +1,7 @@
 #include "inode.h"
 #include "cache.h"
 #include "helper.h"
+#include "log.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -11,20 +12,20 @@
 void printInode(int inum) {
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", inum);
         return;
     }
 
-    if (inode->type == INODE_REGULAR) TracePrintf( 1, "[SERVER][LOG] Inode %d, Size %d, nlink %d, Regular File\n", inum, inode->nlink, inode->size);
-    else if (inode->type == INODE_DIRECTORY)TracePrintf( 1, "[SERVER][LOG] Inode %d, Size %d, nlink %d, Directory\n", inum,inode->nlink, inode->size);
+    if (inode->type == INODE_REGULAR) TracePrintf( LOG, "[SERVER][LOG] Inode %d, Size %d, nlink %d, Regular File\n", inum, inode->nlink, inode->size);
+    else if (inode->type == INODE_DIRECTORY)TracePrintf( LOG, "[SERVER][LOG] Inode %d, Size %d, nlink %d, Directory\n", inum,inode->nlink, inode->size);
 }
 
 void printdirentry(int inum) {
-    TracePrintf( 1, "[SERVER][INODE %d][LOG] Print Inode entry\n", inum);
+    TracePrintf( LOG, "[SERVER][INODE %d][LOG] Print Inode entry\n", inum);
     struct inode* inode = findInode(inum);
-    //TracePrintf( 1, "[SERVER][LOG] Print Inode entry: found dir %d\n", inum);
+    //TracePrintf( LOG, "[SERVER][LOG] Print Inode entry: found dir %d\n", inum);
     if (inode == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", inum);
         return;
     }
 
@@ -54,12 +55,12 @@ void printdirentry(int inum) {
         
         struct inode* fileInode = findInode(entry->inum);
         if (fileInode == NULL) {
-            TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", entry->inum);
+            TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", entry->inum);
             return;
         }
 
-        if (fileInode->type == INODE_REGULAR) TracePrintf( 1, "[SERVER][INODE %d][LOG] Entry Name %s, Inum %d, Regular File\n", inum, entry->name, entry->inum);
-        else TracePrintf( 1, "[SERVER][INODE %d][LOG] Entry Name %s, Inum %d, Directory\n", inum, entry->name, entry->inum);
+        if (fileInode->type == INODE_REGULAR) TracePrintf( LOG, "[SERVER][INODE %d][LOG] Entry Name %s, Inum %d, Regular File\n", inum, entry->name, entry->inum);
+        else TracePrintf( LOG, "[SERVER][INODE %d][LOG] Entry Name %s, Inum %d, Directory\n", inum, entry->name, entry->inum);
     }
 
     free(entry);
@@ -72,6 +73,8 @@ void printdirentry(int inum) {
  * 
  */
 int inodeCreate(int inum, int parent_inum, int type) {
+    TracePrintf( LOG, "[SERVER][LOG] Create Inode %d at parent inode %d\n", inum, parent_inum);
+
     struct inode* inode = findInode(inum);
     
     inode = findInode(inum);
@@ -81,36 +84,36 @@ int inodeCreate(int inum, int parent_inum, int type) {
     inode->indirect = getFreeBlock();
 
     if (writeInode(inum, inode) == ERROR) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot write inode %d\n", inum);
         return ERROR;
     }
 
     if (type == INODE_DIRECTORY) {
-        TracePrintf( 1, "[SERVER][LOG] Create Directory Inode\n");
+        TracePrintf( INF, "[SERVER][INF] Create Directory Inode\n");
 
         inodeAddEntry(inum, inum, ".");
         inodeAddEntry(inum, parent_inum, "..");
     } else {
-        TracePrintf( 1, "[SERVER][LOG] Create Regular Inode\n");
+        TracePrintf( INF, "[SERVER][INF] Create Regular Inode\n");
 
         inode->size = 0;
     }
 
-    TracePrintf( 1, "[SERVER][LOG] Inode %d created\n", inum);
+    TracePrintf( INF, "[SERVER][INF] Inode %d created\n", inum);
 
     return 0;
 }
 
 int inodeDelete(int inum) {
-    TracePrintf( 1, "[SERVER][LOG] Deleting Inode %d\n", inum);
+    TracePrintf( LOG, "[SERVER][LOG] Deleting Inode %d\n", inum);
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", inum);
         return ERROR;
     }
 
     if (inode->nlink > 0) {
-        TracePrintf( 1, "[SERVER][ERR] Inode %d has %d links\n", inum, inode->nlink);
+        TracePrintf( ERR, "[SERVER][ERR] Inode %d has %d links\n", inum, inode->nlink);
         return ERROR;
     }
 
@@ -139,7 +142,7 @@ int inodeDelete(int inum) {
     inode->size = 0;
     
     if (writeInode(inum, inode) == ERROR) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot write inode %d\n", inum);
         return ERROR;
     }
 
@@ -147,33 +150,33 @@ int inodeDelete(int inum) {
 
     free(inode);
 
-    TracePrintf( 1, "[SERVER][LOG] InodeDel: successfully deleted inode: %d \n", inum);
+    TracePrintf( INF, "[SERVER][INF] InodeDel: successfully deleted inode: %d \n", inum);
 
     return 0;
 }
 
 int inodeDelEntry(int parentInum, int fileInum, char* eName) {
-    TracePrintf( 1, "[SERVER][LOG] Deleting Inode %d from Inode %d\n", fileInum, parentInum);
+    TracePrintf( LOG, "[SERVER][LOG] Deleting Inode %d from Inode %d\n", fileInum, parentInum);
 
     if (decrementNlink(fileInum) == ERROR) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot decrement nlink of inode %d\n", fileInum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot decrement nlink of inode %d\n", fileInum);
         return ERROR;
     }
 
     struct inode* parentInode = findInode(parentInum);
     if (parentInode == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", parentInum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", parentInum);
         return ERROR;
     }
 
     struct inode* fileInode = findInode(fileInum);
     if (fileInode == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", fileInum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", fileInum);
         return ERROR;
     }
 
 
-    TracePrintf( 1, "[SERVER][LOG] fileInum %d nlink %d\n", fileInum, fileInode->nlink);
+    TracePrintf( INF, "[SERVER][INF] fileInum %d nlink %d\n", fileInum, fileInode->nlink);
 
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     Block* blk = NULL;
@@ -201,10 +204,10 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
         }
 
         if (entry->inum == fileInum && i >= 64) {
-            TracePrintf( 1, "[SERVER][LOG] Found entry %s\n", entry->name);
+            TracePrintf( TRC, "[SERVER][TRC] Found entry %s\n", entry->name);
 
             if (!cmpDirName(entry, eName)) {
-                TracePrintf( 1, "[SERVER][ERR] Inum %d Found entry %s does not match %s\n", fileInum, entry->name, eName);
+                TracePrintf( ERR, "[SERVER][ERR] Inum %d Found entry %s does not match %s\n", fileInum, entry->name, eName);
                 continue;
             }
 
@@ -214,18 +217,18 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
 
             if (block_num < NUM_DIRECT) {
                 if (write_block(parentInode->direct[block_num], (void *) blk->datum) == ERROR) {
-                    TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", parentInode->direct[block_num]);
+                    TracePrintf( ERR, "[SERVER][ERR] Cannot write block %d\n", parentInode->direct[block_num]);
                     return ERROR;
                 }
             } else {
                 if (write_block(indirect[indirect_block_num], (void *) blk->datum) == ERROR) {
-                    TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", indirect[indirect_block_num]);
+                    TracePrintf( ERR, "[SERVER][ERR] Cannot write block %d\n", indirect[indirect_block_num]);
                     return ERROR;
                 }
             }
 
             if (writeInode(parentInum, parentInode) == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", parentInum);
+                TracePrintf( ERR, "[SERVER][ERR] Cannot write inode %d\n", parentInum);
                 return ERROR;
             }
 
@@ -244,7 +247,7 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
 
     if (fileInode->nlink == 0) {
         if (inodeDelete(fileInum) == ERROR) {
-            TracePrintf( 1, "[SERVER][ERR] Cannot delete inode %d\n", fileInum);
+            TracePrintf( ERR, "[SERVER][ERR] Cannot delete inode %d\n", fileInum);
             return ERROR;
         }
     }
@@ -255,18 +258,18 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
 int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", inum);
         return ERROR;
     }
 
     if (inode->type == INODE_DIRECTORY && type == FILEWRITE) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot read/write directory\n");
+        TracePrintf( ERR, "[SERVER][ERR] Cannot read/write directory\n");
         return ERROR;
     }
     
     if (curpos == END_POS) curpos = inode->size;
 
-    TracePrintf( 1, "[SERVER][INODE %d][INF] Read/Write %d bytes from/to inode %d's\n", inum, size, inum);
+    TracePrintf( TRC, "[SERVER][INODE %d][TRC] Read/Write %d bytes from/to inode %d's\n", inum, size, inum);
 
     int i;
     for (i = 0; i < curpos + size; i += BLOCKSIZE) {
@@ -274,7 +277,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
 
         if (block_num == inode->size / BLOCKSIZE) {
             if (inode->size % BLOCKSIZE == 0) {
-                TracePrintf( 1, "[SERVER][INODE %d][TRC] Allocate Block num %d\n", inum, block_num);
+                TracePrintf( TRC, "[SERVER][INODE %d][TRC] Allocate Block num %d\n", inum, block_num);
                 inode->direct[block_num] = getFreeBlock();
             }
         } else if (block_num > inode->size / BLOCKSIZE) {
@@ -288,7 +291,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                     indirect[block_num - NUM_DIRECT] = getFreeBlock();
 
                     if (write_block(inode->indirect, (void *) indirect) == ERROR) {
-                        TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", indirect[block_num - NUM_DIRECT]);
+                        TracePrintf( ERR, "[SERVER][ERR] Cannot write block %d\n", indirect[block_num - NUM_DIRECT]);
                         return ERROR;
                     }
                 }
@@ -296,7 +299,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 free(indirectBlk);
             }
 
-            TracePrintf( 1, "[SERVER][INODE %d][TRC] Allocate Block num %d\n", inum, block_num);
+            TracePrintf( TRC, "[SERVER][INODE %d][TRC] Allocate Block num %d\n", inum, block_num);
         }
     }
 
@@ -306,7 +309,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
 
         int block_num = curpos / BLOCKSIZE;
         int block_offset = curpos % BLOCKSIZE;
-        TracePrintf( 1, "[SERVER][INODE %d][TRC] Read/Write at curpos %d, Block num %d, Block offset %d\n", inum, curpos, block_num, block_offset);
+        TracePrintf( TRC, "[SERVER][INODE %d][TRC] Read/Write at curpos %d, Block num %d, Block offset %d\n", inum, curpos, block_num, block_offset);
 
         int len = BLOCKSIZE - block_offset;
         if (len > size) len = size;
@@ -319,11 +322,11 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 memcpy(blk->datum + block_offset, buf, len);
 
                 if (write_block(inode->direct[block_num], (void *) blk->datum) == ERROR) {
-                    TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", inode->direct[block_num]);
+                    TracePrintf( ERR, "[SERVER][ERR] Cannot write block %d\n", inode->direct[block_num]);
                     return ERROR;
                 }
             } else {
-                TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
+                TracePrintf( ERR, "[SERVER][ERR] Invalid type\n");
                 return ERROR;
             }
 
@@ -340,11 +343,11 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 memcpy(blk->datum + block_offset, buf, len);
 
                 if (write_block(indirect[indirect_block_num], (void *) blk->datum) == ERROR) {
-                    TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", indirect[indirect_block_num]);
+                    TracePrintf( ERR, "[SERVER][ERR] Cannot write block %d\n", indirect[indirect_block_num]);
                     return ERROR;
                 }
             } else {
-                TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
+                TracePrintf( ERR, "[SERVER][ERR] Invalid type\n");
                 return ERROR;
             }
 
@@ -353,21 +356,21 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
         }
 
         totalbyte += len;
-        TracePrintf( 1, "[SERVER][INODE %d][TRC] Write %d to block %d\n", inum, len, block_num);
+        TracePrintf( TRC, "[SERVER][INODE %d][TRC] Write %d to block %d\n", inum, len, block_num);
 
         curpos += len;
         buf += len;
         size -= len;
 
         if (size > 0) {
-            TracePrintf( 1, "[SERVER][WAR] Buf data write through different blocks, be careful\n");
+            TracePrintf( WAR, "[SERVER][WAR] Buf data write through different blocks, be careful\n");
         }
     }
 
     if (curpos > inode->size) inode->size = curpos;
 
     if (writeInode(inum, inode) == ERROR) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot write inode %d\n", inum);
         return ERROR;
     }
 
@@ -377,14 +380,14 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
 int incrementNlink(int inum) {
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", inum);
         return ERROR;
     }
     
     inode->nlink++;
 
     if (writeInode(inum, inode) == ERROR) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot write inode %d\n", inum);
         return ERROR;
     }
 
@@ -394,7 +397,7 @@ int incrementNlink(int inum) {
 int decrementNlink(int inum) {
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", inum);
         return ERROR;
     }
     
@@ -411,12 +414,12 @@ void inodeAddEntry(int parent_inum, int file_inum, char* name) {
     // cannot use strcpy here since name is not necessarily null terminated
     setdirName(entry, name);
 
-    TracePrintf( 1, "[SERVER][INODE %d][LOG] Add %s to entry\n", parent_inum, name);
+    TracePrintf( LOG, "[SERVER][INODE %d][LOG] Add %s to entry\n", parent_inum, name);
 
     inodeReadWrite(parent_inum, (void*)entry, END_POS, sizeof(struct dir_entry), DIRUPDATE);
 
     if (incrementNlink(file_inum) == ERROR) {
-        TracePrintf( 1, "[SERVER][ERR] Cannot increment nlink of inode %d\n", file_inum);
+        TracePrintf( ERR, "[SERVER][ERR] Cannot increment nlink of inode %d\n", file_inum);
         return;
     }
 }
@@ -426,7 +429,7 @@ void inodeAddEntry(int parent_inum, int file_inum, char* name) {
  * inum is the currInode
  */
 int inumFind(char* pathname, int currInum){
-    TracePrintf( 1, "[SERVER][LOG] Finding Inum for %s\n", pathname);
+    TracePrintf( LOG, "[SERVER][LOG] Finding Inum for %s\n", pathname);
 
     // pathname should be valid (checked before calling the function)
     char* pName = (char *)malloc(MAXPATHLEN * sizeof(char));
@@ -435,7 +438,7 @@ int inumFind(char* pathname, int currInum){
     if (pName[0] == '/') currInum = ROOTINODE; 
 
     if (currInum <= 0 || currInum > INODE_NUM) {
-        TracePrintf( 1, "[SERVER][ERR] inumFind: Invalid Inum %d\n", currInum);
+        TracePrintf( ERR, "[SERVER][ERR] inumFind: Invalid Inum %d\n", currInum);
         return ERROR;
     }
 
@@ -454,7 +457,7 @@ int inumFind(char* pathname, int currInum){
         // Check if this is potentially the last segment and it doesn't end with a slash
         // and if so, exit the loop to disregard it
         if (*end == '\0' && pName[strlen(pName) - 1] != '/') {
-            TracePrintf( 1, "[SERVER][TRC] Found last segment\n");
+            TracePrintf( TRC, "[SERVER][TRC] Found last segment\n");
             break;
         }
 
@@ -470,14 +473,14 @@ int inumFind(char* pathname, int currInum){
             // Process the directory name stored in dir_name here
             int temp_inum = inumRetrieve(currInum, dir_name, INODE_DIRECTORY);
             if (temp_inum == 0) {
-                TracePrintf( 1, "[SERVER][ERR] Found invalid Inum\n");
+                TracePrintf( ERR, "[SERVER][ERR] Found invalid Inum\n");
                 return ERROR;
             } else if (temp_inum == ERROR) {
-                TracePrintf( 1, "[SERVER][ERR] Fail to find Inum of a subdirectory\n");
+                TracePrintf( ERR, "[SERVER][ERR] Fail to find Inum of a subdirectory\n");
                 return ERROR;
             }
 
-            TracePrintf( 1, "[SERVER][TRC] Found Directory: %s\n", dir_name);
+            TracePrintf( TRC, "[SERVER][TRC] Found Directory: %s\n", dir_name);
             // update the curr inum
             currInum = temp_inum;
         }
@@ -489,7 +492,7 @@ int inumFind(char* pathname, int currInum){
         start = ++end;
     }
 
-    TracePrintf( 1, "[SERVER][LOG] Find Inum %d for %s\n", currInum, pathname);
+    TracePrintf( INF, "[SERVER][INF] Find Inum %d for %s\n", currInum, pathname);
     return currInum;
 }
 
@@ -499,21 +502,21 @@ int inumFind(char* pathname, int currInum){
  * Remember to add indirect check...
  */
 int inumRetrieve(int inum, char* name, int type) {
-    TracePrintf( 1, "[SERVER][LOG] Retrieving %s at parent Inum %d\n", name, inum);
+    TracePrintf( LOG, "[SERVER][LOG] Retrieving %s at parent Inum %d\n", name, inum);
     // find the inum of parent dir
     if (inum <= 0 || inum > INODE_NUM) {
-        TracePrintf( 1, "[SERVER][ERR] inumRetrieve: Invalid Inum %d\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] inumRetrieve: Invalid Inum %d\n", inum);
         return ERROR;
     }
     
     struct inode* inode = findInode(inum);
     if (inode->type != INODE_DIRECTORY) {
-        TracePrintf( 1, "[SERVER][ERR] %d Not a directory Inode\n", inum);
+        TracePrintf( ERR, "[SERVER][ERR] %d Not a directory Inode\n", inum);
         return ERROR;
     }
 
     int i, dir_size = inode->size / sizeof(struct dir_entry);    
-    TracePrintf( 1, "[SERVER][TRC] Directory Size %d, inode size %d\n", dir_size, inode->size);
+    TracePrintf( TRC, "[SERVER][TRC] Directory Size %d, inode size %d\n", dir_size, inode->size);
     for (i = 0; i < dir_size; ++i) {
         int idx = (i * sizeof(struct dir_entry)) / BLOCKSIZE;
 
@@ -536,7 +539,7 @@ int inumRetrieve(int inum, char* name, int type) {
         
         if (dir->inum == 0) continue;
 
-        TracePrintf( 1, "[SERVER][TRC] Found %s\n", dir->name);
+        TracePrintf( TRC, "[SERVER][TRC] Found %s\n", dir->name);
         if (dir != NULL && strncmp(name, dir->name, DIRNAMELEN) == 0) {
             int dir_inum = (int)dir->inum;
             if (idx >= NUM_DIRECT) free(indirectBlk);
@@ -545,27 +548,27 @@ int inumRetrieve(int inum, char* name, int type) {
 
             struct inode* found_inode = findInode(dir_inum);
             if (found_inode == NULL) {
-                TracePrintf( 1, "[SERVER][ERR] Cannot find Inode %d\n", dir_inum);
+                TracePrintf( ERR, "[SERVER][ERR] Cannot find Inode %d\n", dir_inum);
                 return ERROR;
             }
 
-            TracePrintf( 1, "[SERVER][TRC] find Inode %d\n", dir_inum);
+            TracePrintf( TRC, "[SERVER][TRC] find Inode %d\n", dir_inum);
 
             if (found_inode->type != type) {
-                TracePrintf( 1, "[SERVER][ERR] Found directory entry %s type and request type do not match\n", name);
+                TracePrintf( ERR, "[SERVER][ERR] Found directory entry %s type and request type do not match\n", name);
                 return ERROR;
             }
 
 
             return dir_inum;
-        } else if (dir == NULL) TracePrintf( 1, "[SERVER][LOG] Directory Entry is NULL!\n");
+        } else if (dir == NULL) TracePrintf( LOG, "[SERVER][LOG] Directory Entry is NULL!\n");
        
         if (idx >= NUM_DIRECT) free(indirectBlk);
 
         free(blk);
     }
 
-    TracePrintf( 1, "[SERVER][LOG] retrivedir: Directory/file:%s does not exist!\n", name);
+    TracePrintf( INF, "[SERVER][INF] retrivedir: Directory/file:%s does not exist!\n", name);
 
     return ERROR;
 }
