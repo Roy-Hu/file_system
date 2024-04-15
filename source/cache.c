@@ -11,9 +11,9 @@ LRUNodeCache *nd_head = NULL;
 LRUBlockCache *blk_head = NULL;
 
 // size of node cache
-int n_size;
+unsigned int n_size;
 // size of block cache
-int b_size;
+unsigned int b_size;
 
 /* write the inode back to disk */
 int writeInode(int inum, struct inode* inode) {
@@ -34,25 +34,16 @@ int writeInode(int inum, struct inode* inode) {
 
 /* find the inode given the inum */
 struct inode* findInode(int inum) {
-    if (inum <= 0 || inum > INODE_NUM) {
+    if (inum <= 0 || (INODE_NUM != 0 && inum > INODE_NUM)) {
         TracePrintf( 1, "[SERVER][ERR] findInode: Invalid inum %d\n", inum);
         return NULL;
     }
     
-    int block_num = getInodeBlockNum(inum);
-    int offset = (inum % INODE_PER_BLOCK) * INODESIZE;
-
-    Block* blk = read_block(block_num);
-    struct inode* inode = (struct inode*)malloc(sizeof(struct inode));
-    
-    memcpy(inode, blk->datum + offset, INODESIZE);
-    free(blk);
-
-    return inode;
+    return lRUGetNode(inum);
 }
 
 /* read a block, save it in a struct and return a pointer to the block */
-Block* read_block(int bNum) {
+Block* read_block(int bNum) {    
     Block* block = (Block*)malloc(sizeof(Block));
 
     int res = ReadSector(bNum, (void *) block->datum);
@@ -77,56 +68,117 @@ void init_node_lru(int nodeSize, int blkSize) {
 }
 
 struct inode* lRUGetNode(int key) {
-    LRUNodeCache *cur = NULL;
+    LRUNodeCache *cur = NULL, *next = NULL;
+
     HASH_FIND_INT(nd_head, &key, cur);
+
     if (cur != NULL) {
+        TracePrintf( 1, "[CACHE][LOG] Find indoe %d in cache\n", key);
+
         HASH_DEL(nd_head, cur);
-        HASH_ADD_INT(nd_head, key, cur);
-        return cur->val;
+    } else {
+        TracePrintf( 1, "[CACHE][LOG] Can't find indoe %d in cache\n", key);
+
+        if (HASH_COUNT(nd_head) == n_size) {
+            HASH_ITER(hh, nd_head, cur, next) {
+                HASH_DEL(nd_head, cur);
+
+                if (cur->dirty) lRUWriteNode(cur);
+
+                free(cur);
+            }
+        }
+
+        int block_num = getInodeBlockNum(key);
+        int offset = (key % INODE_PER_BLOCK) * INODESIZE;
+
+        Block* blk = read_block(block_num);
+        if (blk == NULL) return NULL;
+
+        struct inode* inode = (struct inode*)malloc(sizeof(struct inode));
+
+        memcpy(inode, blk->datum + offset, INODESIZE);
+
+        cur = (LRUNodeCache *)malloc(sizeof(LRUNodeCache));
+        cur->val = inode;
+        cur->key = key;
     }
-    // not found
-    return NULL;
+
+    HASH_ADD_INT(nd_head, key, cur);
+
+    return cur->val;
 }
 
 struct block* lRUGetBlk(int key) {
-    LRUBlockCache *cur = NULL;
+    LRUBlockCache *cur = NULL, *next = NULL;
+
     HASH_FIND_INT(blk_head, &key, cur);
     if (cur != NULL) { // found, move it to the head
-        TracePrintf(1, "[CACHE][LOG] Found block, put it to the head...\n");
+        TracePrintf( 1, "[CACHE][LOG] Find block %d in cache\n", key);
+
         HASH_DEL(blk_head, cur);
-        HASH_ADD_INT(blk_head, key, cur);
-        return cur->val;
+    } else {
+        TracePrintf( 1, "[CACHE][LOG] Can't find block %d in cache\n", key);
+
+        if (HASH_COUNT(blk_head) == n_size) {
+            HASH_ITER(hh, blk_head, cur, next) {
+                HASH_DEL(blk_head, cur);
+
+                if (cur->dirty) lRUWriteBlk(cur);
+
+                free(cur);
+            }
+        }
+
+        Block* block = (Block*)malloc(sizeof(Block));
+
+        int res = ReadSector(key, (void *) block->datum);
+        if (res == ERROR) {
+            TracePrintf( 1, "[SERVER][ERR] ReadSector failed\n");
+            return NULL;
+        }
+
+        cur = (LRUBlockCache *)malloc(sizeof(LRUBlockCache));
+        cur->val = block;
+        cur->key = key;
     }
-    // not found
-    TracePrintf(1, "[CACHE][LOG] Can't find block!\n");
-    return NULL;
+
+    HASH_ADD_INT(blk_head, key, cur);
+
+    return cur->val;
 }
 
-    void lRUNodePut(int key, struct inode* value)
-{
+void lRUNodePut(int key, struct inode* value) {
     LRUNodeCache *cur = NULL, *next = NULL;
     HASH_FIND_INT(nd_head, &key, cur);
     // find the inode
     if (cur != NULL) {
         HASH_DEL(nd_head, cur);
+
         cur->key = key;
         cur->val = value;
-        HASH_ADD_INT(nd_head, key, cur);
-        TracePrintf(1, "[CACHE][LOG] Found the node, replace it with new value!\n");
+        cur->dirty = true;
+
+        TracePrintf( 1, "[CACHE][LOG] Found the node, replace it with new value!\n");
     } else { // insert new
-        int cnt = HASH_COUNT(nd_head);
-        if (cnt == n_size) {
+        if (HASH_COUNT(nd_head) == n_size) {
             HASH_ITER(hh, nd_head, cur, next) {
                 HASH_DEL(nd_head, cur);
+
+                if (cur->dirty) lRUWriteNode(cur);
+
                 free(cur);
-                break;
             }
         }
-        LRUNodeCache *new_node = (LRUNodeCache *)malloc(sizeof(LRUNodeCache));
-        new_node->key = key;
-        new_node->val = value;
-        HASH_ADD_INT(nd_head, key, new_node);
+
+        cur = (LRUNodeCache *)malloc(sizeof(LRUNodeCache));
+        cur->key = key;
+        cur->val = value;
+        cur->dirty = true;
     }
+
+    HASH_ADD_INT(nd_head, key, cur);
+
     return;
 }
 
@@ -136,26 +188,52 @@ void lRUBlockPut(int key, struct block* value) {
     // find the inode
     if (cur != NULL) {
         HASH_DEL(blk_head, cur);
+
         cur->key = key;
         cur->val = value;
-        HASH_ADD_INT(blk_head, key, cur);
-        TracePrintf(1, "[CACHE][LOG] Found the block, replace it with new value!\n");
+        cur->dirty = true;
 
+        TracePrintf( 1, "[CACHE][LOG] Found the block, replace it with new value!\n");
     } else { // insert new
-        int cnt = HASH_COUNT(blk_head);
-        if (cnt == n_size) { // evict a block
+        if (HASH_COUNT(blk_head) == n_size) { // evict a block
             HASH_ITER(hh, blk_head, cur, next) {
                 HASH_DEL(blk_head, cur);
+
+                if (cur->dirty) lRUWriteBlk(cur);
+
                 free(cur);
-                break;
             }
         }
-        LRUBlockCache *new_node = (LRUBlockCache *)malloc(sizeof(LRUBlockCache));
-        new_node->key = key;
-        new_node->val = value;
-        HASH_ADD_INT(blk_head, key, new_node);
-        TracePrintf(1, "[CACHE][LOG] Didn't find the block, create a new entry in cache!\n");
 
+        cur = (LRUBlockCache *)malloc(sizeof(LRUBlockCache));
+        cur->key = key;
+        cur->val = value;
+        cur->dirty = true;
+
+        TracePrintf( 1, "[CACHE][LOG] Didn't find the block, create a new entry in cache!\n");
     }
+
+    HASH_ADD_INT(blk_head, key, cur);
+
     return;
+}
+
+void lRUWriteNode(LRUNodeCache *cahce) {
+    TracePrintf( 1, "[CACHE][LOG] Write inode %d to disk\n", cahce->key);
+
+    int block_num = getInodeBlockNum(cahce->key);
+    int offset = (cahce->key % INODE_PER_BLOCK) * INODESIZE;
+
+    Block* blk = read_block(block_num);
+
+    memcpy(blk->datum + offset, cahce->val, INODESIZE);
+    
+    write_block(block_num, (void *) blk->datum);
+}
+
+
+void lRUWriteBlk(LRUBlockCache *cahce) {
+    TracePrintf( 1, "[CACHE][LOG] Write block %d to disk\n", cahce->key);
+
+    WriteSector(cahce->key, (void *) cahce->val->datum);
 }
