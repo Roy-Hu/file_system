@@ -13,7 +13,7 @@
 extern int CURR_INODE;
 
 // On success, return the file's inum
-int yfsOpen(int inode, char* pName, int *parentInum) {
+int yfsOpen(int currInum, char* pName, int *parentInum) {
     TracePrintf( 1, "[SERVER][LOG] Open file %s\n", pName);
 
     if (normPathname(pName) == ERROR) {
@@ -31,7 +31,7 @@ int yfsOpen(int inode, char* pName, int *parentInum) {
 
 
     // found the inum of the last dir (before the last slash)
-    *parentInum = inumFind(pName, inode);
+    *parentInum = inumFind(pName, currInum);
     if (*parentInum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find parent dir for %s, non-existing dir!\n", pName);
         return ERROR;
@@ -86,28 +86,32 @@ int yfsMkdir(char* pName, int currInum) {
 int yfsRmDir(char* pName, int currInum) {
     // (void) pName;
     // (void) currInum;
-    TracePrintf(1, "[SERVER][LOG] Remove Directory\n");
+    TracePrintf( 1, "[SERVER][LOG] Remove Directory\n");
     int parent_inum = inumFind(pName, currInum);
     if (parent_inum == ERROR) {
-        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to find parent_inum\n");
+        TracePrintf( 1, "[SERVER][LOG] RmDir: Fail to find parent_inum\n");
         return ERROR;
     }
     char* lName = getLastName(pName);
     if (lName[0]=='\0') {
-        TracePrintf(1, "[SERVER][LOG] RmDir: Attempt to remove root directory\n");
+        TracePrintf( 1, "[SERVER][LOG] RmDir: Attempt to remove root directory\n");
         return ERROR;
     }
     int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY);
     if (dir_inum == ERROR || dir_inum == ROOTINODE) {
-        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to find dir_inum\n");
+        TracePrintf( 1, "[SERVER][LOG] RmDir: Fail to find dir_inum\n");
         return ERROR;
     }
+
     struct inode* dir_inode = findInode(dir_inum);
     if (dir_inode->type != INODE_DIRECTORY || dir_inode == NULL) {
-        TracePrintf(1, "[SERVER][LOG] RmDir: Found Invalid Inode\n");
+        TracePrintf( 1, "[SERVER][LOG] RmDir: Found Invalid Inode\n");
         return ERROR;
     }
-    TracePrintf(1, "[SERVER][LOG] RmDir: Start checking dir inodes %d\n", dir_inode->size);
+
+    TracePrintf( 1, "[SERVER][LOG] RmDir: Start checking dir inodes %d\n", dir_inode->size);
+    printdirentry(dir_inum);
+
     int i =  2*sizeof(struct dir_entry);
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     Block* blk = NULL;
@@ -127,7 +131,7 @@ int yfsRmDir(char* pName, int currInum) {
 
             memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
         }
-        TracePrintf(1, "[SERVER][LOG] RmDir: Entry inum: %d!\n", entry->inum);
+        TracePrintf( 1, "[SERVER][LOG] RmDir: Entry inum: %d!\n", entry->inum);
         if (entry->inum != 0) {
             TracePrintf(1, "[SERVER][LOG] RmDir: Directory not empty, cannot be removed!\n");
             return ERROR;
@@ -135,12 +139,12 @@ int yfsRmDir(char* pName, int currInum) {
     }
     free(entry);
 
-    TracePrintf(1, "[SERVER][LOG] RmDir: Trying to delete: %d of parent entry: %d!\n", dir_inum, parent_inum);
+    TracePrintf( 1, "[SERVER][LOG] RmDir: Trying to delete: %d of parent entry: %d!\n", dir_inum, parent_inum);
 
    
     // delete entry dir_inum from parent dir
-    if (inodeDelEntry(parent_inum, dir_inum) == ERROR ) {
-        TracePrintf(1, "[SERVER][LOG] RmDir: Fail to remove directory entry from its parent dir!\n");
+    if (inodeDelEntry(parent_inum, dir_inum, lName) == ERROR ) {
+        TracePrintf( 1, "[SERVER][LOG] RmDir: Fail to remove directory entry from its parent dir!\n");
         return ERROR;
     }
     // set dir_inum inode to free
@@ -221,11 +225,11 @@ int create(char* pName, int type, int currInum) {
     return fileInum;
 }
 
-int yfsLink(char* oldname, char* newname) {
+int yfsLink(char* oldname, char* newname, int currInum) {
     TracePrintf( 1, "[SERVER][LOG] Link %s to %s\n", newname, oldname);
 
     int parentInum;
-    int fileinum = yfsOpen(INVALID_INUM, oldname, &parentInum);
+    int fileinum = yfsOpen(currInum, oldname, &parentInum);
     if (fileinum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find file %s\n", oldname);
         return ERROR;
@@ -238,16 +242,23 @@ int yfsLink(char* oldname, char* newname) {
 
     inodeAddEntry(parentInum, fileinum, newname);
     
+    printdirentry(parentInum);
     return 0;
 }
 
-int yfsUnLink(char* pName) {
+int yfsUnLink(char* pName, int currInum) {
     TracePrintf( 1, "[SERVER][LOG] UnLink %s\n", pName);
 
     int parentInum;
-    int fileinum = yfsOpen(INVALID_INUM, pName, &parentInum);
+    int fileinum = yfsOpen(currInum, pName, &parentInum);
     if (fileinum == ERROR) {
         TracePrintf( 1, "[SERVER][ERR] Fail to find file %s\n", pName);
+        return ERROR;
+    }
+    
+    char* lName = getLastName(pName);
+    if (lName[0]=='\0') {
+        TracePrintf( 1, "[SERVER][LOG] RmDir: Attempt to remove root directory\n");
         return ERROR;
     }
 
@@ -262,7 +273,7 @@ int yfsUnLink(char* pName) {
         return ERROR;
     }
 
-    return inodeDelEntry(parentInum, fileinum);
+    return inodeDelEntry(parentInum, fileinum, lName);
 }
 
 int yfsStat(char* pName, int currInum, struct Stat *stat) {

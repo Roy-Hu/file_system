@@ -81,3 +81,16 @@ void setdirName(struct dir_entry* entry, char* filename) {
         memcpy(entry->name, filename, len);
     }
 }
+
+bool cmpDirName(struct dir_entry* entry, char* eName) {    
+    unsigned int len = 0;
+    for (len = 0; len < DIRNAMELEN; len++) {
+        if (entry->name[len] == '\0') {
+            break;
+        }
+    }
+    
+    if (strlen(eName) != len) return false;
+        
+    return strncmp(entry->name, eName, len) == 0;
+}

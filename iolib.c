@@ -84,6 +84,7 @@ int Open(char *pathname) {
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = OPEN;
     msg->type = (short) tp;
+    msg->inum = CURR_INODE;
     msg->pathnamePtr = pathname;
 
     Send((void*)msg, -FILE_SERVER);
@@ -294,6 +295,7 @@ int Link(char *oldname, char *newname) {
     msg->type = LINK;
     msg->pathnamePtr = oldname;
     msg->bufPtr = newname;
+    msg->inum = CURR_INODE;
 
     Send((void*)msg, -FILE_SERVER);
     if (msg->reply == ERROR) {
@@ -309,6 +311,7 @@ int Unlink(char *pathname) {
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     msg->type = UNLINK;
     msg->pathnamePtr = pathname;
+    msg->inum = CURR_INODE;
 
     Send((void*)msg, -FILE_SERVER);
     if (msg->reply == ERROR) {

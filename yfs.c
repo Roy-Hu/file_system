@@ -25,7 +25,7 @@ int msgHandler(Messgae* msg, int pid) {
             }
 
             int parent_inum;
-            msg->inum = yfsOpen(INVALID_INUM, pName, &parent_inum);
+            msg->inum = yfsOpen(msg->inum, pName, &parent_inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
                 TracePrintf( 1, "[SERVER][ERR] Open: Fail to open file\n");
@@ -112,7 +112,7 @@ int msgHandler(Messgae* msg, int pid) {
             }
 
             // pos will be the cur dir inum while LINK
-            msg->reply = yfsLink(oldname, newname);
+            msg->reply = yfsLink(oldname, newname, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
                 TracePrintf( 1, "[SERVER][ERR] Link: Fail to link %s to %s\n", newname, oldname);
@@ -129,12 +129,14 @@ int msgHandler(Messgae* msg, int pid) {
                 TracePrintf( 1, "[SERVER][ERR] Create: Fail copy path name %s\n", pName);
             }
 
-            msg->reply = yfsUnLink(pName);
+            msg->reply = yfsUnLink(pName, msg->inum);
             if (msg->inum == ERROR) {
                 msg->reply = ERROR;
                 TracePrintf( 1, "[SERVER][ERR] UnLink: Fail to unlink %s\n", pName);
                 break;
             }
+
+            printdirentry(msg->inum);
 
             break;
         }

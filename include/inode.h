@@ -23,7 +23,7 @@ int inodeReadWrite(int inum, void *buf, int curpos, int size, int type);
 
 int inodeDelete(int inum);
 
-int inodeDelEntry(int parentInum, int fileInum);
+int inodeDelEntry(int parentInum, int fileInum, char* eName);
 
 void printdirentry(int inum);
 
@@ -31,6 +31,6 @@ void printInode(int inum);
 
 void incrementNlink(int inum);
 
-void decrementNlink(int inum);
+int decrementNlink(int inum);
 
 #endif

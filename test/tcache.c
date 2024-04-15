@@ -29,7 +29,7 @@ void lRUBlockPut(int key, struct block* value) {
         cur->key = key;
         cur->val = value;
         HASH_ADD_INT(blk_head, key, cur);
-        printf( "[CACHE][LOG] Found the block, replace it with new value!\n");
+        TracePrintf( 1, "[CACHE][LOG] Found the block, replace it with new value!\n");
 
     } else { // insert new
         int cnt = HASH_COUNT(blk_head);
@@ -39,14 +39,14 @@ void lRUBlockPut(int key, struct block* value) {
                 free(cur);
                 break;
             }
-        printf( "[CACHE][LOG] Full, evicting a blk\n");
+        TracePrintf( 1, "[CACHE][LOG] Full, evicting a blk\n");
 
         }
         LRUBlockCache *new_node = (LRUBlockCache *)malloc(sizeof(LRUBlockCache));
         new_node->key = key;
         new_node->val = value;
         HASH_ADD_INT(blk_head, key, new_node);
-        printf( "[CACHE][LOG] Didn't find the block, create a new entry in cache!\n");
+        TracePrintf( 1, "[CACHE][LOG] Didn't find the block, create a new entry in cache!\n");
 
     }
     return;
@@ -57,13 +57,13 @@ struct block* lRUGetBlk(int key) {
     LRUBlockCache *cur = NULL;
     HASH_FIND_INT(blk_head, &key, cur);
     if (cur != NULL) { // found, move it to the head
-        printf( "[CACHE][LOG] Found block, put it to the head...\n");
+        TracePrintf( 1, "[CACHE][LOG] Found block, put it to the head...\n");
         HASH_DEL(blk_head, cur);
         HASH_ADD_INT(blk_head, key, cur);
         return cur->val;
     }
     // not found
-    printf( "[CACHE][LOG] Can't find block!\n");
+    TracePrintf( 1, "[CACHE][LOG] Can't find block!\n");
     return NULL;
 }
 
@@ -74,7 +74,7 @@ void init_node_lru(int blkSize) {
 int
 main()
 {
-    printf( "Cache test in progress\n");
+    TracePrintf( 1, "Cache test in progress\n");
     Block* blk = (Block*)malloc(sizeof(Block));
     Block* blk2 = (Block*)malloc(sizeof(Block));
     init_node_lru(1);
