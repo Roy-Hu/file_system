@@ -23,14 +23,9 @@ int writeInode(int inum, struct inode* inode) {
         return ERROR;
     }
 
-    int block_num = getInodeBlockNum(inum);
-    int offset = (inum % INODE_PER_BLOCK) * INODESIZE;
+    lRUNodePut(inum, inode);
 
-    Block* blk = read_block(block_num);
-
-    memcpy(blk->datum + offset, inode, INODESIZE);
-
-    return WriteSector(block_num, (void *) blk->datum);
+    return 0;
 }
 
 /* find the inode given the inum */
@@ -45,20 +40,14 @@ struct inode* findInode(int inum) {
 
 /* read a block, save it in a struct and return a pointer to the block */
 Block* read_block(int bNum) {    
-    Block* block = (Block*)malloc(sizeof(Block));
-
-    int res = ReadSector(bNum, (void *) block->datum);
-    if (res == ERROR) {
-        TracePrintf( ERR, "[SERVER][ERR] ReadSector failed\n");
-        return NULL;
-    }
-
-    return block;
+    return lRUGetBlk(bNum);
 }
 
 /* read a block, save it in a struct and return a pointer to the block */
 int write_block(int bNum, void* data) {
-    return WriteSector(bNum, data);
+    lRUNodePut(bNum, data);
+
+    return 0;
 }
 
 /* LRU Cache Interface */
@@ -82,8 +71,17 @@ struct inode* lRUGetNode(int key) {
         if (HASH_COUNT(nd_head) == INODE_CACHESIZE) {
             TracePrintf( TRC, "[SERVER][CACHE][TRC] Cache is full, evict node\n");
 
-            if (nd_head->dirty) lRUWriteNode(nd_head);
+            if (nd_head->dirty) {
+                int block_num = getInodeBlockNum(nd_head->key);
+                int offset = (nd_head->key % INODE_PER_BLOCK) * INODESIZE;
 
+                Block* blk = read_block(block_num);
+
+                memcpy(blk->datum + offset, nd_head->val, INODESIZE);
+                
+                write_block(block_num, (void *) blk->datum);
+            }
+            
             HASH_DEL(nd_head, nd_head);
         }
 
@@ -127,7 +125,7 @@ struct block* lRUGetBlk(int key) {
         if (HASH_COUNT(blk_head) == BLOCK_CACHESIZE) {
             TracePrintf( TRC, "[SERVER][CACHE][TRC] Cache is full, evict node\n");
 
-            if (blk_head->dirty) lRUWriteBlk(blk_head);
+            if (blk_head->dirty) WriteSector(blk_head->key, (void *) blk_head->val->datum);
 
             HASH_DEL(blk_head, blk_head);
         }
@@ -167,7 +165,16 @@ void lRUNodePut(int key, struct inode* value) {
         if (HASH_COUNT(nd_head) == INODE_CACHESIZE) {
             TracePrintf( TRC, "[SERVER][CACHE][TRC] Cache is full, evict node\n");
 
-            if (nd_head->dirty) lRUWriteNode(nd_head);
+            if (nd_head->dirty) {
+                int block_num = getInodeBlockNum(nd_head->key);
+                int offset = (nd_head->key % INODE_PER_BLOCK) * INODESIZE;
+
+                Block* blk = read_block(block_num);
+
+                memcpy(blk->datum + offset, nd_head->val, INODESIZE);
+                
+                write_block(block_num, (void *) blk->datum);
+            }
 
             HASH_DEL(nd_head, nd_head);
         }
@@ -198,7 +205,7 @@ void lRUBlockPut(int key, struct block* value) {
         if (HASH_COUNT(blk_head) == BLOCK_CACHESIZE) {
             TracePrintf( TRC, "[SERVER][CACHE][TRC] Cache is full, evict node\n");
 
-            if (blk_head->dirty) lRUWriteBlk(blk_head);
+            if (blk_head->dirty) WriteSector(blk_head->key, (void *) blk_head->val->datum);
 
             HASH_DEL(blk_head, blk_head);
         }
@@ -213,24 +220,4 @@ void lRUBlockPut(int key, struct block* value) {
     HASH_ADD_INT(blk_head, key, cur);
 
     return;
-}
-
-void lRUWriteNode(LRUNodeCache *cahce) {
-    TracePrintf( INF, "[SERVER][CACHE][INF] Write inode %d to disk\n", cahce->key);
-
-    int block_num = getInodeBlockNum(cahce->key);
-    int offset = (cahce->key % INODE_PER_BLOCK) * INODESIZE;
-
-    Block* blk = read_block(block_num);
-
-    memcpy(blk->datum + offset, cahce->val, INODESIZE);
-    
-    write_block(block_num, (void *) blk->datum);
-}
-
-
-void lRUWriteBlk(LRUBlockCache *cahce) {
-    TracePrintf( INF, "[CACHE][INF] Write block %d to disk\n", cahce->key);
-
-    WriteSector(cahce->key, (void *) cahce->val->datum);
 }

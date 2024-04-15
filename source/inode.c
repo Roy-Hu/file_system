@@ -30,8 +30,6 @@ void printdirentry(int inum) {
     }
 
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
-    Block* blk = NULL;
-    Block* indirectBlk = NULL;
     int i;
 
     for (i = 0; i < inode->size; i += sizeof(struct dir_entry)) {
@@ -39,14 +37,14 @@ void printdirentry(int inum) {
         int block_offset = i % BLOCKSIZE;
 
         if (block_num < NUM_DIRECT) {
-            blk = read_block(inode->direct[block_num]);
+            Block* blk = read_block(inode->direct[block_num]);
             memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
         } else {
             int indirect_block_num = block_num - NUM_DIRECT;
             Block* indirectBlk = read_block(inode->indirect);
             
             int* indirect = (int*)indirectBlk->datum;
-            blk = read_block(indirect[indirect_block_num]);
+            Block* blk = read_block(indirect[indirect_block_num]);
 
             memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
         }
@@ -64,9 +62,6 @@ void printdirentry(int inum) {
     }
 
     free(entry);
-
-    if (blk != NULL) free(blk);
-    if (indirectBlk != NULL) free(indirectBlk); 
 }
 /*
  * Create a new inode for directory/file
@@ -106,6 +101,7 @@ int inodeCreate(int inum, int parent_inum, int type) {
 
 int inodeDelete(int inum) {
     TracePrintf( LOG, "[SERVER][LOG] Deleting Inode %d\n", inum);
+
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
         TracePrintf( ERR, "[SERVER][ERR] Cannot find inode %d\n", inum);
@@ -117,9 +113,6 @@ int inodeDelete(int inum) {
         return ERROR;
     }
 
-    Block* blk = NULL;
-    Block* indirectBlk = NULL;
-
     int i;
     for (i = 0; i < inode->size; i += BLOCKSIZE) {
         int block_num = i / BLOCKSIZE;
@@ -128,15 +121,12 @@ int inodeDelete(int inum) {
             freeBlocks[inode->direct[block_num]] = 0;
         } else {
             int indirect_block_num = block_num - NUM_DIRECT;
-            indirectBlk = read_block(inode->indirect);
+            Block* indirectBlk = read_block(inode->indirect);
             
             int* indirect = (int*)indirectBlk->datum;
             freeBlocks[indirect[indirect_block_num]] = 0;
         }
     }
-    
-    if (blk != NULL) free(blk);
-    if (indirectBlk != NULL) free(indirectBlk);
 
     inode->type = INODE_FREE;
     inode->size = 0;
@@ -147,8 +137,6 @@ int inodeDelete(int inum) {
     }
 
     freeInodes[inum] = 0;
-
-    free(inode);
 
     TracePrintf( INF, "[SERVER][INF] InodeDel: successfully deleted inode: %d \n", inum);
 
@@ -242,8 +230,6 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
     }
 
     free(entry);
-    if (blk != NULL) free(blk);
-    if (indirectBlk != NULL) free(indirectBlk); 
 
     if (fileInode->nlink == 0) {
         if (inodeDelete(fileInum) == ERROR) {
@@ -295,8 +281,6 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                         return ERROR;
                     }
                 }
-
-                free(indirectBlk);
             }
 
             TracePrintf( TRC, "[SERVER][INODE %d][TRC] Allocate Block num %d\n", inum, block_num);
@@ -329,8 +313,6 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 TracePrintf( ERR, "[SERVER][ERR] Invalid type\n");
                 return ERROR;
             }
-
-            free(blk);
         } else {
             int indirect_block_num = block_num - NUM_DIRECT;
             Block* indirectBlk = read_block(inode->indirect);
@@ -350,9 +332,6 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 TracePrintf( ERR, "[SERVER][ERR] Invalid type\n");
                 return ERROR;
             }
-
-            free(indirectBlk);
-            free(blk);
         }
 
         totalbyte += len;
@@ -542,9 +521,6 @@ int inumRetrieve(int inum, char* name, int type) {
         TracePrintf( TRC, "[SERVER][TRC] Found %s\n", dir->name);
         if (dir != NULL && strncmp(name, dir->name, DIRNAMELEN) == 0) {
             int dir_inum = (int)dir->inum;
-            if (idx >= NUM_DIRECT) free(indirectBlk);
-
-            free(blk);
 
             struct inode* found_inode = findInode(dir_inum);
             if (found_inode == NULL) {
@@ -562,10 +538,6 @@ int inumRetrieve(int inum, char* name, int type) {
 
             return dir_inum;
         } else if (dir == NULL) TracePrintf( LOG, "[SERVER][LOG] Directory Entry is NULL!\n");
-       
-        if (idx >= NUM_DIRECT) free(indirectBlk);
-
-        free(blk);
     }
 
     TracePrintf( INF, "[SERVER][INF] retrivedir: Directory/file:%s does not exist!\n", name);
