@@ -105,12 +105,14 @@ struct inode* lRUGetNode(int key) {
 struct block* lRUGetBlk(int key) {
     LRUBlockCache *cur = NULL;
     HASH_FIND_INT(blk_head, &key, cur);
-    if (cur != NULL) {
+    if (cur != NULL) { // found, move it to the head
+        TracePrintf(1, "[CACHE][LOG] Found block, put it to the head...\n");
         HASH_DEL(blk_head, cur);
         HASH_ADD_INT(blk_head, key, cur);
         return cur->val;
     }
     // not found
+    TracePrintf(1, "[CACHE][LOG] Can't find block!\n");
     return NULL;
 }
 
@@ -124,6 +126,7 @@ struct block* lRUGetBlk(int key) {
         cur->key = key;
         cur->val = value;
         HASH_ADD_INT(nd_head, key, cur);
+        TracePrintf(1, "[CACHE][LOG] Found the node, replace it with new value!\n");
     } else { // insert new
         int cnt = HASH_COUNT(nd_head);
         if (cnt == n_size) {
@@ -141,8 +144,7 @@ struct block* lRUGetBlk(int key) {
     return;
 }
 
-void lRUBlockPut(int key, struct block* value)
-{
+void lRUBlockPut(int key, struct block* value) {
     LRUBlockCache *cur = NULL, *next = NULL;
     HASH_FIND_INT(blk_head, &key, cur);
     // find the inode
@@ -151,6 +153,8 @@ void lRUBlockPut(int key, struct block* value)
         cur->key = key;
         cur->val = value;
         HASH_ADD_INT(blk_head, key, cur);
+        TracePrintf(1, "[CACHE][LOG] Found the block, replace it with new value!\n");
+
     } else { // insert new
         int cnt = HASH_COUNT(blk_head);
         if (cnt == n_size) { // evict a block
@@ -164,6 +168,8 @@ void lRUBlockPut(int key, struct block* value)
         new_node->key = key;
         new_node->val = value;
         HASH_ADD_INT(blk_head, key, new_node);
+        TracePrintf(1, "[CACHE][LOG] Didn't find the block, create a new entry in cache!\n");
+
     }
     return;
 }
