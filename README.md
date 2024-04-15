@@ -1,11 +1,7 @@
 ## TO-DO:
-1. Init free blocks and inodes in the file system (finished-ish, not tested)
-2. Finish handling functions to deal with requests send by the client (kernel) (request sending and receiving work!)
-3. Finish each functions in iolib.c
+1. Finish each functions in iolib.c
     - ### In progress
-        - LRU cache: use a library called [uthash](https://troydhanson.github.io/uthash/userguide.html#_iterating_and_sorting) for creating a hashtable
     - ### Need to be done:
-        - Stat
         - Sync
         - Shutdown
     - ### Finished
@@ -19,8 +15,13 @@
         - Unlink
         - RmDir
         - ChDir
-4. LRU cache
-5. Handle relative paths (haven't tested yet, but I think our work only works with absolute paths)
+        - Stat
+## Finished:
+1. Init free blocks and inodes in the file system (finished-ish, not tested)
+2. Finish handling functions to deal with requests send by the client (kernel) (request sending and receiving work!)
+3. LRU cache
+4. Handle relative paths 
+
 ### use the bash for testing
 ```
 chmod +x testshell.sh
