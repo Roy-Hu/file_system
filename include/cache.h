@@ -6,13 +6,13 @@
 
 typedef struct {
     int key;      // inum
-    void* val;
+    struct inode* val;
     UT_hash_handle hh;
 } LRUNodeCache;
 
 typedef struct {
     int key;    // block num
-    void* val;
+    struct block* val;
     UT_hash_handle hh;
 } LRUBlockCache;
 
@@ -20,6 +20,11 @@ typedef struct {
 // return pointer to the obj if found, otherwise NULL
 struct inode* lRUGetNode(int key);
 struct block* lRUGetBlk(int key);
+
+// put inode pointer by inum to cache
+// if not exist, add the inode to cache
+void lRUNodePut(int key, struct inode* value);
+void lRUBlockPut(int key, struct block* value);
 
 void init_node_lru(int nodeSize, int blkSize);
 

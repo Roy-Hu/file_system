@@ -113,3 +113,57 @@ struct block* lRUGetBlk(int key) {
     // not found
     return NULL;
 }
+
+    void lRUNodePut(int key, struct inode* value)
+{
+    LRUNodeCache *cur = NULL, *next = NULL;
+    HASH_FIND_INT(nd_head, &key, cur);
+    // find the inode
+    if (cur != NULL) {
+        HASH_DEL(nd_head, cur);
+        cur->key = key;
+        cur->val = value;
+        HASH_ADD_INT(nd_head, key, cur);
+    } else { // insert new
+        int cnt = HASH_COUNT(nd_head);
+        if (cnt == n_size) {
+            HASH_ITER(hh, nd_head, cur, next) {
+                HASH_DEL(nd_head, cur);
+                free(cur);
+                break;
+            }
+        }
+        LRUNodeCache *new_node = (LRUNodeCache *)malloc(sizeof(LRUNodeCache));
+        new_node->key = key;
+        new_node->val = value;
+        HASH_ADD_INT(nd_head, key, new_node);
+    }
+    return;
+}
+
+void lRUBlockPut(int key, struct block* value)
+{
+    LRUBlockCache *cur = NULL, *next = NULL;
+    HASH_FIND_INT(blk_head, &key, cur);
+    // find the inode
+    if (cur != NULL) {
+        HASH_DEL(blk_head, cur);
+        cur->key = key;
+        cur->val = value;
+        HASH_ADD_INT(blk_head, key, cur);
+    } else { // insert new
+        int cnt = HASH_COUNT(blk_head);
+        if (cnt == n_size) { // evict a block
+            HASH_ITER(hh, blk_head, cur, next) {
+                HASH_DEL(blk_head, cur);
+                free(cur);
+                break;
+            }
+        }
+        LRUBlockCache *new_node = (LRUBlockCache *)malloc(sizeof(LRUBlockCache));
+        new_node->key = key;
+        new_node->val = value;
+        HASH_ADD_INT(blk_head, key, new_node);
+    }
+    return;
+}
