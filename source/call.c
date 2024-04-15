@@ -133,7 +133,7 @@ int yfsRmDir(char* pName, int currInum) {
         }
         TracePrintf( 1, "[SERVER][LOG] RmDir: Entry inum: %d!\n", entry->inum);
         if (entry->inum != 0) {
-            TracePrintf(1, "[SERVER][LOG] RmDir: Directory not empty, cannot be removed!\n");
+            TracePrintf( 1, "[SERVER][LOG] RmDir: Directory not empty, cannot be removed!\n");
             return ERROR;
         }
     }
@@ -158,17 +158,17 @@ int yfsRmDir(char* pName, int currInum) {
 int yfsChDir(char *pName, int currInum) {
     int parent_inum = inumFind(pName, currInum);
     if (parent_inum == ERROR) {
-        TracePrintf(1, "[SERVER][LOG] ChDir: Fail to find parent_inum\n");
+        TracePrintf( 1, "[SERVER][LOG] ChDir: Fail to find parent_inum\n");
         return ERROR;
     }
     char* lName = getLastName(pName);
     int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY);
     if (dir_inum == ERROR ) {
-        TracePrintf(1, "[SERVER][LOG] ChDir: Fail to find dir_inum\n");
+        TracePrintf( 1, "[SERVER][LOG] ChDir: Fail to find dir_inum\n");
         return ERROR;
     }
     // return the inode being changed to
-    TracePrintf(1, "[SERVER][LOG] ChDir: Succeed to change dir_inum to: %d\n", dir_inum);
+    TracePrintf( 1, "[SERVER][LOG] ChDir: Succeed to change dir_inum to: %d\n", dir_inum);
     return dir_inum;
 }
 

@@ -3,7 +3,7 @@
 
 #include "disk.h"
 #include "uthash.h"
-#include <stdbool.h>
+
 typedef struct {
     int key;      // inum
     struct inode* val;
