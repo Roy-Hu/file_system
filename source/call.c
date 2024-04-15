@@ -141,15 +141,17 @@ int yfsRmDir(char* pName, int currInum) {
 
     TracePrintf( 1, "[SERVER][LOG] RmDir: Trying to delete: %d of parent entry: %d!\n", dir_inum, parent_inum);
 
-   
     // delete entry dir_inum from parent dir
     if (inodeDelEntry(parent_inum, dir_inum, lName) == ERROR ) {
         TracePrintf( 1, "[SERVER][LOG] RmDir: Fail to remove directory entry from its parent dir!\n");
         return ERROR;
     }
+    
     // set dir_inum inode to free
-    setInodeFree(dir_inum);
+    inodeDelete(dir_inum);
+
     printdirentry(parent_inum);
+
     return 0;
 }
 

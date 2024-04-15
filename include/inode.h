@@ -11,7 +11,7 @@
 #define FILEREAD 1
 #define DIRUPDATE 2
 
-void inodeCreate(int inum, int parent_inum, int type);
+int inodeCreate(int inum, int parent_inum, int type);
 
 void inodeAddEntry(int parent_inum, int file_inum, char *name);
 
@@ -29,7 +29,7 @@ void printdirentry(int inum);
 
 void printInode(int inum);
 
-void incrementNlink(int inum);
+int incrementNlink(int inum);
 
 int decrementNlink(int inum);
 

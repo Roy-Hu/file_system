@@ -19,22 +19,23 @@ typedef struct {
 // geting a block or node
 // return pointer to the obj if found, otherwise NULL
 struct inode* lRUGetNode(int key);
+
 struct block* lRUGetBlk(int key);
 
 // put inode pointer by inum to cache
 // if not exist, add the inode to cache
 void lRUNodePut(int key, struct inode* value);
+
 void lRUBlockPut(int key, struct block* value);
 
 void init_node_lru(int nodeSize, int blkSize);
-
 
 struct inode* findInode(int inum);
 
 Block* read_block(int bNum);
 
-void writeInode(int inum, struct inode* inode);
+int write_block(int bNum, void* data);
 
-void setInodeFree(int inum);
+int writeInode(int inum, struct inode* inode);
 
 #endif

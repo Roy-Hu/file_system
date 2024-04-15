@@ -71,7 +71,7 @@ void printdirentry(int inum) {
  * Create a new inode for directory/file
  * 
  */
-void inodeCreate(int inum, int parent_inum, int type) {
+int inodeCreate(int inum, int parent_inum, int type) {
     struct inode* inode = findInode(inum);
     
     inode = findInode(inum);
@@ -80,7 +80,10 @@ void inodeCreate(int inum, int parent_inum, int type) {
     
     inode->indirect = getFreeBlock();
 
-    writeInode(inum, inode);
+    if (writeInode(inum, inode) == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", inum);
+        return ERROR;
+    }
 
     if (type == INODE_DIRECTORY) {
         TracePrintf( 1, "[SERVER][LOG] Create Directory Inode\n");
@@ -93,12 +96,13 @@ void inodeCreate(int inum, int parent_inum, int type) {
         inode->size = 0;
     }
 
-
     TracePrintf( 1, "[SERVER][LOG] Inode %d created\n", inum);
+
+    return 0;
 }
 
 int inodeDelete(int inum) {
-    printf("[SERVER][LOG] Deleting Inode %d\n", inum);
+    TracePrintf( 1, "[SERVER][LOG] Deleting Inode %d\n", inum);
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
         TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
@@ -134,8 +138,11 @@ int inodeDelete(int inum) {
     inode->type = INODE_FREE;
     inode->size = 0;
     
-    writeInode(inum, inode);
-    
+    if (writeInode(inum, inode) == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", inum);
+        return ERROR;
+    }
+
     freeInodes[inum] = 0;
 
     free(inode);
@@ -166,7 +173,7 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
     }
 
 
-    printf("[SERVER][LOG] fileInum %d nlink %d\n", fileInum, fileInode->nlink);
+    TracePrintf( 1, "[SERVER][LOG] fileInum %d nlink %d\n", fileInum, fileInode->nlink);
 
     struct dir_entry* entry = (struct dir_entry*)malloc(sizeof(struct dir_entry));
     Block* blk = NULL;
@@ -206,12 +213,21 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
             memcpy(blk->datum + block_offset, entry, sizeof(struct dir_entry));
 
             if (block_num < NUM_DIRECT) {
-                WriteSector(parentInode->direct[block_num], (void *) blk->datum);
+                if (write_block(parentInode->direct[block_num], (void *) blk->datum) == ERROR) {
+                    TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", parentInode->direct[block_num]);
+                    return ERROR;
+                }
             } else {
-                WriteSector(indirect[indirect_block_num], (void *) blk->datum);
+                if (write_block(indirect[indirect_block_num], (void *) blk->datum) == ERROR) {
+                    TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", indirect[indirect_block_num]);
+                    return ERROR;
+                }
             }
 
-            writeInode(parentInum, parentInode);
+            if (writeInode(parentInum, parentInode) == ERROR) {
+                TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", parentInum);
+                return ERROR;
+            }
 
             printdirentry(parentInum);
             found = true;
@@ -270,7 +286,11 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
 
                 if (indirect[block_num - NUM_DIRECT] == 0) {
                     indirect[block_num - NUM_DIRECT] = getFreeBlock();
-                    WriteSector(inode->indirect, (void *) indirect);
+
+                    if (write_block(inode->indirect, (void *) indirect) == ERROR) {
+                        TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", indirect[block_num - NUM_DIRECT]);
+                        return ERROR;
+                    }
                 }
 
                 free(indirectBlk);
@@ -294,11 +314,14 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
         if (block_num < NUM_DIRECT) {
             Block* blk = read_block(inode->direct[block_num]);
 
-            if (type == FILEREAD) {
-                memcpy(buf, blk->datum + block_offset, len);
-            } else if (type == FILEWRITE || type == DIRUPDATE) {
+            if (type == FILEREAD) memcpy(buf, blk->datum + block_offset, len);
+            else if (type == FILEWRITE || type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
-                WriteSector(inode->direct[block_num], (void *) blk->datum);
+
+                if (write_block(inode->direct[block_num], (void *) blk->datum) == ERROR) {
+                    TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", inode->direct[block_num]);
+                    return ERROR;
+                }
             } else {
                 TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
                 return ERROR;
@@ -312,11 +335,14 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
             int* indirect = (int*)indirectBlk->datum;
             Block* blk = read_block(indirect[indirect_block_num]);
 
-            if (type == FILEREAD) {
-                memcpy(buf, blk->datum + block_offset, len);
-            } else if (type == FILEWRITE || type == DIRUPDATE) {
+            if (type == FILEREAD) memcpy(buf, blk->datum + block_offset, len);
+            else if (type == FILEWRITE || type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
-                WriteSector(indirect[indirect_block_num], (void *) blk->datum);
+
+                if (write_block(indirect[indirect_block_num], (void *) blk->datum) == ERROR) {
+                    TracePrintf( 1, "[SERVER][ERR] Cannot write block %d\n", indirect[indirect_block_num]);
+                    return ERROR;
+                }
             } else {
                 TracePrintf( 1, "[SERVER][ERR] Invalid type\n");
                 return ERROR;
@@ -334,27 +360,35 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
         size -= len;
 
         if (size > 0) {
-            printf("[SERVER][WAR] Buf data write through different blocks, be careful\n");
+            TracePrintf( 1, "[SERVER][WAR] Buf data write through different blocks, be careful\n");
         }
     }
 
     if (curpos > inode->size) inode->size = curpos;
 
-    writeInode(inum, inode);
+    if (writeInode(inum, inode) == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", inum);
+        return ERROR;
+    }
 
     return totalbyte;
 }
 
-void incrementNlink(int inum) {
+int incrementNlink(int inum) {
     struct inode* inode = findInode(inum);
     if (inode == NULL) {
         TracePrintf( 1, "[SERVER][ERR] Cannot find inode %d\n", inum);
-        return;
+        return ERROR;
     }
     
     inode->nlink++;
 
-    writeInode(inum, inode);
+    if (writeInode(inum, inode) == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot write inode %d\n", inum);
+        return ERROR;
+    }
+
+    return 0;
 }
 
 int decrementNlink(int inum) {
@@ -381,7 +415,10 @@ void inodeAddEntry(int parent_inum, int file_inum, char* name) {
 
     inodeReadWrite(parent_inum, (void*)entry, END_POS, sizeof(struct dir_entry), DIRUPDATE);
 
-    incrementNlink(file_inum);
+    if (incrementNlink(file_inum) == ERROR) {
+        TracePrintf( 1, "[SERVER][ERR] Cannot increment nlink of inode %d\n", file_inum);
+        return;
+    }
 }
 
 /* 
