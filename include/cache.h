@@ -44,5 +44,6 @@ void lRUWriteNode(LRUNodeCache *cahce);
 
 void lRUWriteBlk(LRUBlockCache *cahce);
 
+void lRUWriteDirty();
 
 #endif

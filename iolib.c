@@ -402,7 +402,7 @@ int Stat(char *pathname, struct Stat *statbuf) {
     int res =  (int)msg->reply;
     
     if (res == ERROR) {
-         TracePrintf( ERR, "[CLIENT][ERR] Stat file errored %d: \n", res);
+        TracePrintf( ERR, "[CLIENT][ERR] Stat file errored %d: \n", res);
     }
     
     TracePrintf( LOG, "[CLIENT][LOG] Stat %s, inum %d, type %d, nlink %d, size %d: \n", pathname, statbuf->inum, statbuf->type, statbuf->nlink, statbuf->size);
@@ -411,6 +411,21 @@ int Stat(char *pathname, struct Stat *statbuf) {
 }
 
 int Sync(void) {
+    TracePrintf( LOG, "[CLIENT][LOG] Sync Request\n");
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    OperationType tp = SYNC;
+    msg->type = (short) tp;
+
+    Send((void*)msg, -FILE_SERVER);
+
+    int res =  (int)msg->reply;
+    if (res != 0) {
+        TracePrintf( ERR, "[CLIENT][ERR] Sync should alway return 0 instead of %d: \n", res);
+    }
+
+    TracePrintf( LOG, "[CLIENT][LOG] Finish Sync\n");
+
     return 0;
 }
 

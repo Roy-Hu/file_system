@@ -9,7 +9,7 @@
 int
 main()
 {
-    printf( "MkDir test in progress\n");
+    // TracePrintf( ERR, "MkDir test in progress\n");
     // int fd = Open("/sss");
     //Write(fd, "cccccccccccccccc", 16);
     // printf("Create\n", Seek(fd, 11, SEEK_END));

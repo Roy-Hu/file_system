@@ -313,3 +313,9 @@ int yfsStat(char* pName, int currInum, struct Stat *stat) {
 
     return 0;
 }
+
+void yfsSync() {
+    TracePrintf( LOG, "[SERVER][LOG] Sync\n");
+
+    lRUWriteDirty();
+}

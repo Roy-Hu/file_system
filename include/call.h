@@ -30,4 +30,6 @@ int yfsRmDir(char* pName, int currInum);
 
 int yfsStat(char* pName, int currInum, struct Stat *stat);
 
+void yfsSync();
+
 #endif

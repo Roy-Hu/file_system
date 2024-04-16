@@ -45,7 +45,7 @@ Block* read_block(int bNum) {
 
 /* read a block, save it in a struct and return a pointer to the block */
 int write_block(int bNum, void* data) {
-    lRUNodePut(bNum, data);
+    lRUBlockPut(bNum, data);
 
     return 0;
 }
@@ -194,6 +194,7 @@ void lRUNodePut(int key, struct inode* value) {
 void lRUBlockPut(int key, struct block* value) {
     LRUBlockCache *cur = NULL;
     HASH_FIND_INT(blk_head, &key, cur);
+
     // find the inode
     if (cur != NULL) {
         HASH_DEL(blk_head, cur);
@@ -220,4 +221,31 @@ void lRUBlockPut(int key, struct block* value) {
     HASH_ADD_INT(blk_head, key, cur);
 
     return;
+}
+
+void lRUWriteDirty() {
+    LRUNodeCache *curNode, *tmpNode;
+    LRUBlockCache *curBlk, *tmpBlk;
+
+    HASH_ITER(hh, nd_head, curNode, tmpNode) {
+        if (curNode->dirty) {
+            curNode->dirty = false;
+
+            int block_num = getInodeBlockNum(curNode->key);
+            int offset = (curNode->key % INODE_PER_BLOCK) * INODESIZE;
+
+            Block* blk = read_block(block_num);
+
+            memcpy(blk->datum + offset, curNode->val, INODESIZE);
+            
+            write_block(block_num, (void *) blk->datum);
+        }
+    }
+
+    HASH_ITER(hh, blk_head, curBlk, tmpBlk) {
+        if (curBlk->dirty) {
+            curBlk->dirty = false;
+            WriteSector(curBlk->key, (void *) curBlk->val->datum);
+        }
+    }
 }

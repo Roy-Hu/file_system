@@ -211,6 +211,12 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case SYNC: {
+            TracePrintf( LOG, "[SERVER][LOG] Received Sync request!\n");
+
+            yfsSync();
+
+            msg->reply = 0;
+
             break;
         }
         case SHUTDOWN: {
