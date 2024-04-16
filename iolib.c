@@ -430,5 +430,20 @@ int Sync(void) {
 }
 
 int Shutdown(void) {
+    TracePrintf( LOG, "[CLIENT][LOG] Shutdown Request\n");
+
+    Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
+    OperationType tp = SHUTDOWN;
+    msg->type = (short) tp;
+
+    Send((void*)msg, -FILE_SERVER);
+
+    int res =  (int)msg->reply;
+    if (res != 0) {
+        TracePrintf( ERR, "[CLIENT][ERR] Shutdown should alway return 0 instead of %d: \n", res);
+    }
+
+    TracePrintf( LOG, "[CLIENT][LOG] Finish Shutdown\n");
+    
     return 0;
 }

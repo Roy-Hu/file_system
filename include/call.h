@@ -32,4 +32,6 @@ int yfsStat(char* pName, int currInum, struct Stat *stat);
 
 void yfsSync();
 
+void yfsShutdown();
+
 #endif

@@ -319,3 +319,9 @@ void yfsSync() {
 
     lRUWriteDirty();
 }
+
+void yfsShutdown() {
+    TracePrintf( LOG, "[SERVER][LOG] Sync\n");
+
+    lRUWriteDirty();
+}

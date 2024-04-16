@@ -220,6 +220,12 @@ int msgHandler(Messgae* msg, int pid) {
             break;
         }
         case SHUTDOWN: {
+            TracePrintf( LOG, "[SERVER][LOG] Received Shutdown request!\n");
+
+            yfsShutdown();
+
+            msg->reply = 0;
+
             break;
         }
         default: {
@@ -306,7 +312,8 @@ int main(int argc, char** argv) {
     TracePrintf( TRC, "[SERVER][TRC] Register succeed\n");
 
     // It should then Fork and Exec a first client user process.
-    if(Fork() == 0) {
+    int fork_pid = Fork();
+    if(fork_pid == 0) {
 		Exec(argv[1], argv + 1);
 	}
 
@@ -330,7 +337,11 @@ int main(int argc, char** argv) {
         if (msgHandler(&msg, pid) == ERROR) return ERROR;
 
         Reply((void*)&msg, pid);
+
+        if (msg.type == SHUTDOWN) break;
     }
+
+    Exit(fork_pid);
 
     return 0;
 }
