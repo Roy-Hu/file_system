@@ -450,7 +450,7 @@ int inumFind(char* pathname, int currInum){
             dir_name[len] = '\0'; // Null-terminate the directory name
 
             // Process the directory name stored in dir_name here
-            int temp_inum = inumRetrieve(currInum, dir_name, INODE_DIRECTORY);
+            int temp_inum = inumRetrieve(currInum, dir_name, INODE_DIRECTORY, 0);
             if (temp_inum == 0) {
                 TracePrintf( ERR, "[SERVER][ERR] Found invalid Inum\n");
                 return ERROR;
@@ -480,7 +480,7 @@ int inumFind(char* pathname, int currInum){
  * return ERROR if not found
  * Remember to add indirect check...
  */
-int inumRetrieve(int inum, char* name, int type) {
+int inumRetrieve(int inum, char* name, int type, int open_flag) {
     TracePrintf( LOG, "[SERVER][LOG] Retrieving %s at parent Inum %d\n", name, inum);
     // find the inum of parent dir
     if (inum <= 0 || inum > INODE_NUM) {
@@ -489,7 +489,7 @@ int inumRetrieve(int inum, char* name, int type) {
     }
     
     struct inode* inode = findInode(inum);
-    if (inode->type != INODE_DIRECTORY) {
+    if (open_flag == 0 && inode->type != INODE_DIRECTORY) {
         TracePrintf( ERR, "[SERVER][ERR] %d Not a directory Inode\n", inum);
         return ERROR;
     }
@@ -530,7 +530,7 @@ int inumRetrieve(int inum, char* name, int type) {
 
             TracePrintf( TRC, "[SERVER][TRC] find Inode %d\n", dir_inum);
 
-            if (found_inode->type != type) {
+            if (open_flag == 0 && found_inode->type != type) {
                 TracePrintf( ERR, "[SERVER][ERR] Found directory entry %s type and request type do not match\n", name);
                 return ERROR;
             }

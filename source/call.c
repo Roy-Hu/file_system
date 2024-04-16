@@ -40,8 +40,8 @@ int yfsOpen(int currInum, char* pName, int *parentInum) {
         return ERROR;
     }
     struct inode* inode = findInode(*parentInum);
-
-    return inumRetrieve(*parentInum, lName, inode->type);
+    // ignore type checking
+    return inumRetrieve(*parentInum, lName, inode->type, 1);
 }
 
 int yfsCreate(char* pName, int currInum) {
@@ -102,7 +102,7 @@ int yfsRmDir(char* pName, int currInum) {
         return ERROR;
     }
 
-    int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY);
+    int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY, 0);
     if (dir_inum == ERROR || dir_inum == ROOTINODE) {
         TracePrintf( ERR, "[SERVER][ERR] RmDir: Fail to find dir_inum\n");
         return ERROR;
@@ -170,7 +170,7 @@ int yfsChDir(char *pName, int currInum) {
     }
 
     char* lName = getLastName(pName);
-    int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY);
+    int dir_inum = inumRetrieve(parent_inum, lName, INODE_DIRECTORY, 0);
     if (dir_inum == ERROR ) {
         TracePrintf( ERR, "[SERVER][ERR] ChDir: Fail to find dir_inum\n");
         return ERROR;

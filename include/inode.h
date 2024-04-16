@@ -17,7 +17,7 @@ void inodeAddEntry(int parent_inum, int file_inum, char *name);
 
 int inumFind(char *pathname, int curr_inum);
 
-int inumRetrieve(int inum, char *dirname, int type);
+int inumRetrieve(int inum, char *dirname, int type, int open_flag);
 
 int inodeReadWrite(int inum, void *buf, int curpos, int size, int type);
 
