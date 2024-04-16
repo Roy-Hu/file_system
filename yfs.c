@@ -338,7 +338,9 @@ int main(int argc, char** argv) {
 
         Reply((void*)&msg, pid);
 
-        if (msg.type == SHUTDOWN) break;
+        if (msg.type == SHUTDOWN) {
+            Exit(0);
+        }
     }
 
     Exit(fork_pid);

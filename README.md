@@ -1,9 +1,5 @@
 ## TO-DO:
 1. Finish each functions in iolib.c
-    - ### In progress
-    - ### Need to be done:
-        - Sync
-        - Shutdown
     - ### Finished
         - Create
         - Close

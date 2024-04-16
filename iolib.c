@@ -127,7 +127,7 @@ int Close(int fd) {
     }
 
     closeFile(fd);
-
+    
     TracePrintf( LOG, "[CLIENT][LOG] Close: Closed file successfully with fd: %d number!\n", fd);
     return 0;
 }
@@ -191,12 +191,12 @@ int Read(int fd, void *buf, int size) {
 
     if (res != ERROR) {
         int byte = msg->size;
-        TracePrintf( LOG, "[CLIENT][LOG] Read %d bytes at fd %d: \n", byte, fd);
+        printf("[CLIENT][LOG] Read %d bytes at fd %d: \n", byte, fd);
         updateFile(fd, files[fd].curPos + byte);
-
+        free(msg);
         return byte;
     } else {
-        TracePrintf( ERR, "[CLIENT][ERR] Fail to create file\n");
+        printf("[CLIENT][ERR] Fail to read file\n");
 
         free(msg);
         return res;
@@ -231,7 +231,7 @@ int Write(int fd, void *buf, int size) {
         int byte = msg->size;
         TracePrintf( LOG, "[CLIENT][LOG] Write %d bytes at fd %d: \n", byte, fd);
         updateFile(fd, files[fd].curPos + byte);
-
+        free(msg);
         return byte;
     } else {
         TracePrintf( ERR, "[CLIENT][ERR] Fail to create file\n");
@@ -280,10 +280,12 @@ int Seek(int fd, int offset, int whence) {
     }
     if (seekPos < 0) {
         TracePrintf( ERR, "[CLIENT][ERR] Seek: seekPos goes beyond the beginning of the file\n");
+        free(msg);
         return ERROR;
     }
 
     updateFile(fd, seekPos);
+    free(msg);
 
     return seekPos;
 }
@@ -300,8 +302,10 @@ int Link(char *oldname, char *newname) {
 
     Send((void*)msg, -FILE_SERVER);
     if (msg->reply == ERROR) {
+        free(msg);
         return ERROR;
     } 
+    free(msg);
 
     return 0;
 }
@@ -316,8 +320,10 @@ int Unlink(char *pathname) {
 
     Send((void*)msg, -FILE_SERVER);
     if (msg->reply == ERROR) {
+        free(msg);
         return ERROR;
     } 
+    free(msg);
 
     return 0;
 }
@@ -341,7 +347,7 @@ int MkDir(char *pathname) {
 
     Send((void*)msg, -FILE_SERVER);
     int res = (int)msg->reply;
-    
+    free(msg);
     TracePrintf( LOG, "[CLIENT][LOG] MkDir return %d: \n", res);
     if (res==ERROR)
         return ERROR;
@@ -360,9 +366,10 @@ int RmDir(char *pathname) {
 
     Send((void*)msg, -FILE_SERVER);
     int res =  (int)msg->reply;
+    free(msg);
 
     TracePrintf( LOG, "[CLIENT][LOG] RmDir file return %d: \n", res);
-
+    
     return res;
 }
 
@@ -382,8 +389,9 @@ int ChDir(char *pathname) {
          TracePrintf( ERR, "[CLIENT][ERR] CHDir file errored %d: \n", res);
     }
     CURR_INODE = msg->inum;
+    free(msg);
 
-    TracePrintf( ERR, "[CLIENT][LOG] CHDir file return %d: \n", res);
+    TracePrintf( LOG, "[CLIENT][LOG] CHDir file return %d: \n", res);
 
     return res;
 }
@@ -400,7 +408,7 @@ int Stat(char *pathname, struct Stat *statbuf) {
 
     Send((void*)msg, -FILE_SERVER);
     int res =  (int)msg->reply;
-    
+    free(msg);
     if (res == ERROR) {
         TracePrintf( ERR, "[CLIENT][ERR] Stat file errored %d: \n", res);
     }
@@ -420,6 +428,7 @@ int Sync(void) {
     Send((void*)msg, -FILE_SERVER);
 
     int res =  (int)msg->reply;
+    free(msg);
     if (res != 0) {
         TracePrintf( ERR, "[CLIENT][ERR] Sync should alway return 0 instead of %d: \n", res);
     }
@@ -439,6 +448,7 @@ int Shutdown(void) {
     Send((void*)msg, -FILE_SERVER);
 
     int res =  (int)msg->reply;
+    free(msg);
     if (res != 0) {
         TracePrintf( ERR, "[CLIENT][ERR] Shutdown should alway return 0 instead of %d: \n", res);
     }

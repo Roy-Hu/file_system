@@ -21,11 +21,13 @@ int yfsOpen(int currInum, char* pName, int *parentInum) {
         TracePrintf( ERR, "[SERVER][ERR] Cannot normalize path name %s\n", pName);
         return ERROR;
     }
+    printf("Pname: %s\n", pName);
 
     char* lName = getLastName(pName);
     if (lName[0]== '\0') {
         TracePrintf( ERR, "[SERVER][ERR] Empty last name!\n");
         return ERROR;
+        // lName = '.';
     }
 
     TracePrintf( INF, "[SERVER][INF] Get last name %s\n", lName);
@@ -37,8 +39,9 @@ int yfsOpen(int currInum, char* pName, int *parentInum) {
         TracePrintf( ERR, "[SERVER][ERR] Fail to find parent dir for %s, non-existing dir!\n", pName);
         return ERROR;
     }
+    struct inode* inode = findInode(*parentInum);
 
-    return inumRetrieve(*parentInum, lName, INODE_REGULAR);
+    return inumRetrieve(*parentInum, lName, inode->type);
 }
 
 int yfsCreate(char* pName, int currInum) {
@@ -324,4 +327,7 @@ void yfsShutdown() {
     TracePrintf( LOG, "[SERVER][LOG] Sync\n");
 
     lRUWriteDirty();
+    printf("Shutting Down YFS...\n");
+
+
 }

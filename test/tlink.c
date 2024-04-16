@@ -14,5 +14,6 @@ main()
 	status = Link("/a", "/b");
 	printf("Link status %d\n", status);
 
-	Shutdown();
+	status = Shutdown();
+	printf("Shutdown status %d\n", status);
 }

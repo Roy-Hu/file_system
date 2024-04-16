@@ -43,6 +43,7 @@ main(int argc, char **argv)
 
     while (1) {
 	nch = Read(fd, (char *)&entry, sizeof(entry));
+	printf("nch: %d, fd:%d\n", nch, fd);
 	if (nch == 0)
 	    break;
 	else if (nch < 0) {
