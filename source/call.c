@@ -21,7 +21,7 @@ int yfsOpen(int currInum, char* pName, int *parentInum) {
         TracePrintf( ERR, "[SERVER][ERR] Cannot normalize path name %s\n", pName);
         return ERROR;
     }
-    printf("Pname: %s\n", pName);
+    TracePrintf( TRC, "Pname: %s\n", pName);
 
     char* lName = getLastName(pName);
     if (lName[0]== '\0') {
@@ -304,10 +304,6 @@ int yfsStat(char* pName, int currInum, struct Stat *stat) {
     }
 
     struct inode* inode = findInode(fileInum);
-    if (inode->type == INODE_DIRECTORY) {
-        TracePrintf( ERR, "[SERVER][ERR] %s is a directory, cannot unlink\n", pName);
-        return ERROR;
-    }
 
     stat->type = inode->type;
     stat->nlink = inode->nlink;

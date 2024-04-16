@@ -191,12 +191,12 @@ int Read(int fd, void *buf, int size) {
 
     if (res != ERROR) {
         int byte = msg->size;
-        printf("[CLIENT][LOG] Read %d bytes at fd %d: \n", byte, fd);
+        TracePrintf( LOG, "[CLIENT][LOG] Read %d bytes at fd %d: \n", byte, fd);
         updateFile(fd, files[fd].curPos + byte);
         free(msg);
         return byte;
     } else {
-        printf("[CLIENT][ERR] Fail to read file\n");
+        TracePrintf( ERR, "[CLIENT][ERR] Fail to read file\n");
 
         free(msg);
         return res;
@@ -411,6 +411,7 @@ int Stat(char *pathname, struct Stat *statbuf) {
     free(msg);
     if (res == ERROR) {
         TracePrintf( ERR, "[CLIENT][ERR] Stat file errored %d: \n", res);
+        return ERROR;
     }
     
     TracePrintf( LOG, "[CLIENT][LOG] Stat %s, inum %d, type %d, nlink %d, size %d: \n", pathname, statbuf->inum, statbuf->type, statbuf->nlink, statbuf->size);

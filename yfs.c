@@ -319,7 +319,7 @@ int main(int argc, char** argv) {
 
     // receiving messages
     while(1) {
-        TracePrintf( LOG, "\n[SERVER][LOG] Start receiving message\n");
+        TracePrintf( LOG, "[SERVER][LOG] Start receiving message\n\n");
         Messgae msg;
         assert(sizeof(msg) == 32);
 
