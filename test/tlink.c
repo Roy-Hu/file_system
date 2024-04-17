@@ -11,8 +11,12 @@ main()
 	status = Create("/a");
 	printf("Create status %d\n", status);
 
-	status = Link("/a", "/b");
+	status = Link("/a", "b");
 	printf("Link status %d\n", status);
+
+	status = Unlink("/b");
+	printf("UnLink status %d\n", status);
+	
 
 	status = Shutdown();
 	printf("Shutdown status %d\n", status);

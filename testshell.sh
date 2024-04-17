@@ -3,13 +3,11 @@
 # Navigate to the specific directory if needed
 # cd /path/to/your/project
 
-# Clean previous builds
+
 make clean
 
 # Build all components
 make all
-
-/clear/courses/comp421/pub/bin/mkyfs
 
 # List of test files to run with the Yalnix binary
 test_files=(
@@ -30,6 +28,9 @@ test_files=(
 
 # Loop over each test file and run it with Yalnix
 for test_file in "${test_files[@]}"; do
+        # Clean previous builds
+
+    /clear/courses/comp421/pub/bin/mkyfs
     echo "Running Yalnix on $test_file..."
     /clear/courses/comp421/pub/bin/yalnix -ly 5 yfs $test_file
     # Capture the return code of the test

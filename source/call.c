@@ -13,7 +13,7 @@
 
 extern int CURR_INODE;
 
-// On success, return the file's inum
+// On success, return the file's inum, can open both dir and file
 int yfsOpen(int currInum, char* pName, int *parentInum) {
     TracePrintf( LOG, "[SERVER][LOG] Open file %s\n", pName);
 
