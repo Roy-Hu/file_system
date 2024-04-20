@@ -16,7 +16,7 @@ unsigned int n_size;
 // size of block cache
 unsigned int b_size;
 
-/* write the inode back to disk */
+/* write the inode */
 int writeInode(int inum, struct inode* inode) {
     if (inum <= 0 || inum > INODE_NUM) {
         TracePrintf( ERR, "[SERVER][ERR] writeInode: Invalid inum %d\n", inum);
