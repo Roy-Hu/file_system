@@ -69,7 +69,8 @@ Contains some functions to handle cache read, write, and replacement
 - lRUBlkPut: put the block to the cache given key (block num)
 - lRUWriteDirty: write dirty blocks from inodes/blocks back to disk
 
-
+#### iolib.c
+Contains interfaces functions, structure, and varaibles for each process
 
 
 
