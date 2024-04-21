@@ -306,23 +306,58 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
             Block* blk = read_block(inode->direct[block_num]);
 
             if (type == FILEREAD) {
-                for (i = 0; i < len; i++) if ((blk->datum + block_offset)[i] == '\0') eof = true;
+                for (i = 0; i < len; i++) {
+                    if ((blk->datum + block_offset)[i] == '\0') {
+                        eof = true;
+                        break;
+                    }
+                }
+
                 if (eof) {
+                    memcpy(buf, blk->datum + block_offset, i);
                     curpos += i;
                     buf += i;
                     size -= i;
+                    totalbyte += i;
                     break;
                 }
 
                 memcpy(buf, blk->datum + block_offset, len);
-            }
+            } 
 
-            else if (type == FILEWRITE || type == DIRUPDATE) {
+            else if (type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
 
                 if (write_block(inode->direct[block_num], (void *) blk->datum) == ERROR) {
                     printf( "[SERVER][ERR] Cannot write block %d\n", inode->direct[block_num]);
                     return ERROR;
+                }
+            } else if (type == FILEWRITE) {
+                for (i = 0; i < len; i++) {
+                    if (((char*)buf)[i] == '\0') {
+                        eof = true;
+                        break;
+                    }
+                }
+
+                if (eof) memcpy(blk->datum + block_offset, buf, i);
+                else memcpy(blk->datum + block_offset, buf, len);
+                
+
+                if (write_block(inode->direct[block_num], (void *) blk->datum) == ERROR) {
+                    printf( "[SERVER][ERR] Cannot write block %d\n", inode->direct[block_num]);
+                    return ERROR;
+                }
+
+                if (eof) {
+                    curpos += i;
+                    buf += i;
+                    size -= i;
+                    totalbyte += i;
+
+                    printf( "[SERVER][LOG] find eof, write %d\n", totalbyte);
+
+                    break;
                 }
             } else {
                 printf( "[SERVER][ERR] Invalid type\n");
@@ -335,18 +370,54 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
             int* indirect = (int*)indirectBlk->datum;
             Block* blk = read_block(indirect[indirect_block_num]);
 
+            TracePrintf( TRC, "[SERVER][INODE %d][TRC] Read/Write at indirect block %d\n", inum, indirect[indirect_block_num]);
             if (type == FILEREAD) {
-                for (i = 0; i < len; i++) if ((blk->datum + block_offset)[i] == '\0') eof = true;
+                for (i = 0; i < len; i++) {
+                    if ((blk->datum + block_offset)[i] == '\0') {
+                        eof = true;
+                        break;
+                    }
+                }
+
                 if (eof) {
+                    memcpy(buf, blk->datum + block_offset, i);
                     curpos += i;
                     buf += i;
                     size -= i;
+                    totalbyte += i;
                     break;
                 }
 
                 memcpy(buf, blk->datum + block_offset, len);
             }
-            else if (type == FILEWRITE || type == DIRUPDATE) {
+            else if (type == FILEWRITE) {
+                for (i = 0; i < len; i++) {
+                    if (((char*)buf)[i] == '\0') {
+                        eof = true;
+                        break;
+                    }
+                }
+
+                if (eof) memcpy(blk->datum + block_offset, buf, i);
+                else memcpy(blk->datum + block_offset, buf, len);
+                
+
+                if (write_block(indirect[indirect_block_num], (void *) blk->datum) == ERROR) {
+                    printf( "[SERVER][ERR] Cannot write block %d\n", inode->direct[block_num]);
+                    return ERROR;
+                }
+
+                if (eof) {
+                    curpos += i;
+                    buf += i;
+                    size -= i;
+                    totalbyte += i;
+
+                    printf( "[SERVER][LOG] find eof, write %d\n", totalbyte);
+
+                    break;
+                }
+            } else if (type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
 
                 if (write_block(indirect[indirect_block_num], (void *) blk->datum) == ERROR) {
