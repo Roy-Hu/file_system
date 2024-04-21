@@ -28,3 +28,4 @@ test/tcache
 test/trelative
 test/twritereadlong
 test/twritereadeof
+test/twritereadbeyond

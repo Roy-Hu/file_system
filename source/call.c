@@ -70,6 +70,12 @@ int yfsWrite(int inum, void* buf, int curpos, int size, int reuse) {
         return ERROR;
     }
 
+    if (curpos > inode->size) {
+        char* holes = (char*)malloc(curpos - inode->size);
+        memset(holes, 0, curpos - inode->size);
+        inodeReadWrite(inum, holes, inode->size, curpos - inode->size, FILEWRITE);
+    }
+
     return inodeReadWrite(inum, buf, curpos, size, FILEWRITE);
 }
 
