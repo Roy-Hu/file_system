@@ -10,6 +10,7 @@
 #define FILEWRITE 0
 #define FILEREAD 1
 #define DIRUPDATE 2
+#define DIRREAD 3
 
 int inodeCreate(int inum, int parent_inum, int type);
 

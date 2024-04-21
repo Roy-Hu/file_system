@@ -13,6 +13,6 @@ main()
 	// create a file? should return error
 	printf("\n%d\n\n", Create("/foo"));
 	printf("\n%d\n\n", Create("/foo/zzz"));
+	Shutdown();
 	return 0;
-	//Shutdown();
 }

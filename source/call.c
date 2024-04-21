@@ -69,7 +69,12 @@ int yfsWrite(int inum, void* buf, int curpos, int size, int reuse) {
         printf( "[SERVER][ERR] Reuse %d and %d not match\n", inode->reuse, reuse);
         return ERROR;
     }
-
+    
+    if (inode->type == INODE_DIRECTORY) {
+        printf( "[SERVER][ERR] Cannot write to directory\n");
+        return ERROR;
+    }
+    
     if (curpos > inode->size) {
         char* holes = (char*)malloc(curpos - inode->size);
         memset(holes, 0, curpos - inode->size);
@@ -93,7 +98,11 @@ int yfsRead(int inum, void* buf, int curpos, int size, int reuse) {
         return ERROR;
     }
 
-    return inodeReadWrite(inum, buf, curpos, size, FILEREAD);
+    if (inode->type == INODE_DIRECTORY) {
+        return inodeReadWrite(inum, buf, curpos, size, DIRREAD);
+    } else {
+        return inodeReadWrite(inum, buf, curpos, size, FILEREAD);
+    }
 }
 
 // return the size of inode (eof)
