@@ -262,6 +262,8 @@ int Seek(int fd, int offset, int whence) {
     int seekPos = 0;
     switch(whence) {
         case SEEK_SET: {
+            if (offset < 0) return ERROR;
+            
             seekPos = offset;
             break;
         }
