@@ -24,10 +24,14 @@ typedef enum {
 /* should be exactly 32 bytes */
 typedef struct messgae {
     short type; 
+
+    // may use as reuse in read/write req
     short reply;
 
     int size;
     int inum;
+
+    // may use as reuse in create/open reply
     int pos;
 
     void* bufPtr;

@@ -12,9 +12,9 @@ int yfsChDir(char *pName, int currInum);
 
 int yfsCreate(char* pName, int currInum);
 
-int yfsWrite(int inum, void* buf, int curpos, int size);
+int yfsWrite(int inum, void* buf, int curpos, int size, int reuse);
 
-int yfsRead(int inum, void* buf, int curpos, int size);
+int yfsRead(int inum, void* buf, int curpos, int size, int reuse);
 
 int yfsMkdir(char* pName, int currInum);
 

@@ -22,6 +22,7 @@ typedef struct openedFile {
     int inum;
     int curPos;
     bool isValid; /* 1: for curr entry is valid, 0 otherwise */
+    int reuse;
 } OpenedFile;
 
 /* array of struct to keep track of opened files */
@@ -31,10 +32,11 @@ OpenedFile files[MAX_OPEN_FILES];
 
 bool isInit = false;
 
-void openFile(int fd, int inum, int pos) {
+void openFile(int fd, int inum, int pos, int reuse) {
     files[fd].inum = inum;
     files[fd].curPos = pos;
     files[fd].isValid = true;
+    files[fd].reuse = reuse;
 }
 
 void updateFile(int fd, int pos) {
@@ -100,8 +102,9 @@ int Open(char *pathname) {
         }
 
         TracePrintf( LOG, "[CLIENT][LOG] Open file inum %d, fd %d: \n", msg->inum, fd);
-
-        openFile(fd, msg->inum, 0);
+        
+        int reuse = msg->pos;
+        openFile(fd, msg->inum, 0, reuse);
 
         free(msg);
 
@@ -155,7 +158,8 @@ int Create(char *pathname) {
 
         TracePrintf( LOG, "[CLIENT][LOG] Created file inum %d, fd %d: \n", msg->inum, fd);
 
-        openFile(fd, msg->inum, 0);
+        int reuse = msg->pos;
+        openFile(fd, msg->inum, 0, reuse);
 
         free(msg);
         return fd;
@@ -177,6 +181,7 @@ int Read(int fd, void *buf, int size) {
 
     int inum = files[fd].inum;
     int curpos = files[fd].curPos;
+    int reuse = files[fd].reuse;
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = READ;
@@ -185,6 +190,7 @@ int Read(int fd, void *buf, int size) {
     msg->bufPtr = buf;
     msg->pos = curpos;
     msg->inum = inum;
+    msg->reply = reuse;
 
     Send((void*)msg, -FILE_SERVER);
     short res = msg->reply;
@@ -215,6 +221,7 @@ int Write(int fd, void *buf, int size) {
 
     int inum = files[fd].inum;
     int curpos = files[fd].curPos;
+    int reuse = files[fd].reuse;
 
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
     OperationType tp = WRITE;
@@ -223,7 +230,8 @@ int Write(int fd, void *buf, int size) {
     msg->bufPtr = buf;
     msg->pos = curpos;
     msg->inum = inum;
-
+    msg->reply = reuse;
+    
     Send((void*)msg, -FILE_SERVER);
     short res = msg->reply;
 

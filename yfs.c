@@ -33,6 +33,9 @@ int msgHandler(Messgae* msg, int pid) {
                 break;
             }
 
+            struct inode* inode = findInode(msg->inum);
+            msg->pos = inode->reuse;
+
             break;
         }
         case CREATE: {
@@ -50,6 +53,9 @@ int msgHandler(Messgae* msg, int pid) {
                 break;
             }
 
+            struct inode* inode = findInode(msg->inum);
+            msg->pos = inode->reuse;
+            
             break;
         }
         case READ: {
@@ -58,7 +64,7 @@ int msgHandler(Messgae* msg, int pid) {
             char* buf = (char *)malloc(msg->size * sizeof(char));
 
 
-            msg->size = yfsRead(msg->inum, buf, msg->pos, msg->size);
+            msg->size = yfsRead(msg->inum, buf, msg->pos, msg->size, msg->reply);
 
             if (CopyTo(pid, msg->bufPtr, (void*)buf, msg->size) == ERROR) {
                 printf( "[SERVER][ERR] Create: Fail copy to buf\n");
@@ -80,7 +86,7 @@ int msgHandler(Messgae* msg, int pid) {
                 printf( "[SERVER][ERR] Create: Fail copy from buf\n");
             }
 
-            msg->size = yfsWrite(msg->inum, (void*)buf, msg->pos, msg->size);
+            msg->size = yfsWrite(msg->inum, (void*)buf, msg->pos, msg->size, msg->reply);
             if (msg->size == ERROR) {
                 msg->reply = ERROR;
                 printf( "[SERVER][ERR] Read: Fail to read file\n");
@@ -273,6 +279,7 @@ void init() {
     // traverse into direct and indirect
     for (i = 1; i < INODE_NUM + 1; ++i) {
         struct inode* temp = findInode(i);
+        temp->reuse = 0;
 
         if (temp->type != INODE_FREE) {
             freeInodes[i] = 1;
@@ -299,6 +306,8 @@ void init() {
                 }
             }
         }
+        
+        writeInode(i, temp);
     }
 }
 

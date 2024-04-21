@@ -75,6 +75,7 @@ int inodeCreate(int inum, int parent_inum, int type) {
     inode = findInode(inum);
     inode->type = type;
     inode->nlink = 0;
+    inode->reuse++;
     
     inode->indirect = getFreeBlock();
 

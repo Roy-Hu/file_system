@@ -56,14 +56,36 @@ int yfsCreate(char* pName, int currInum) {
 }
 
 /* return the bytes written to the file*/
-int yfsWrite(int inum, void* buf, int curpos, int size) {
+int yfsWrite(int inum, void* buf, int curpos, int size, int reuse) {
     TracePrintf( LOG, "[SERVER][LOG] Write %d byte at inum %d, pos %d\n", size, inum, curpos);
+
+    struct inode* inode = findInode(inum);
+    if (inode == NULL) {
+        printf( "[SERVER][ERR] Cannot find inode %d\n", inum);
+        return ERROR;
+    }
+
+    if (inode->reuse != reuse) {
+        printf( "[SERVER][ERR] Reuse %d and %d not match\n", inode->reuse, reuse);
+        return ERROR;
+    }
 
     return inodeReadWrite(inum, buf, curpos, size, FILEWRITE);
 }
 
-int yfsRead(int inum, void* buf, int curpos, int size) {
+int yfsRead(int inum, void* buf, int curpos, int size, int reuse) {
     TracePrintf( LOG, "[SERVER][LOG] Read %d byte at inum %d, pos %d\n", size, inum, curpos);
+
+    struct inode* inode = findInode(inum);
+    if (inode == NULL) {
+        printf( "[SERVER][ERR] Cannot find inode %d\n", inum);
+        return ERROR;
+    }
+
+    if (inode->reuse != reuse) {
+        printf( "[SERVER][ERR] Reuse %d and %d not match\n", inode->reuse, reuse);
+        return ERROR;
+    }
 
     return inodeReadWrite(inum, buf, curpos, size, FILEREAD);
 }
