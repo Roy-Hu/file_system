@@ -64,17 +64,21 @@ int msgHandler(Messgae* msg, int pid) {
             char* buf = (char *)malloc(msg->size * sizeof(char));
 
 
-            msg->size = yfsRead(msg->inum, buf, msg->pos, msg->size, msg->reply);
+            int size = yfsRead(msg->inum, buf, msg->pos, msg->size, msg->reply);
+            
+            if (size == ERROR) {
+                msg->reply = ERROR;
+                printf( "[SERVER][ERR] Read: Fail to read file\n");
+                break;
+            }
 
+            if (size < msg->size) buf[size] = '\0';
+            
             if (CopyTo(pid, msg->bufPtr, (void*)buf, msg->size) == ERROR) {
                 printf( "[SERVER][ERR] Create: Fail copy to buf\n");
             }
 
-            if (msg->size == ERROR) {
-                msg->pos = ERROR;
-                printf( "[SERVER][ERR] Read: Fail to read file\n");
-                break;
-            }
+            msg->size = size;
 
             break;
         }
@@ -93,7 +97,7 @@ int msgHandler(Messgae* msg, int pid) {
                 break;
             }
 
-            printf( "[SERVER][ERR] Write %d byte tp msg\n", msg->size);
+            TracePrintf( LOG, "[SERVER][LOG] Write %d byte tp msg\n", msg->size);
 
             break;
         }

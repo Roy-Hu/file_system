@@ -289,6 +289,8 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
     }
 
     int totalbyte = 0;
+    bool eof = false;
+
     while (size > 0) {
         if (type == FILEREAD && curpos >= inode->size) break;
 
@@ -298,11 +300,23 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
 
         int len = BLOCKSIZE - block_offset;
         if (len > size) len = size;
+        if (type == FILEREAD &&  curpos + len > inode->size) len = inode->size - curpos;
 
         if (block_num < NUM_DIRECT) {
             Block* blk = read_block(inode->direct[block_num]);
 
-            if (type == FILEREAD) memcpy(buf, blk->datum + block_offset, len);
+            if (type == FILEREAD) {
+                for (i = 0; i < len; i++) if ((blk->datum + block_offset)[i] == '\0') eof = true;
+                if (eof) {
+                    curpos += i;
+                    buf += i;
+                    size -= i;
+                    break;
+                }
+
+                memcpy(buf, blk->datum + block_offset, len);
+            }
+
             else if (type == FILEWRITE || type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
 
@@ -321,7 +335,17 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
             int* indirect = (int*)indirectBlk->datum;
             Block* blk = read_block(indirect[indirect_block_num]);
 
-            if (type == FILEREAD) memcpy(buf, blk->datum + block_offset, len);
+            if (type == FILEREAD) {
+                for (i = 0; i < len; i++) if ((blk->datum + block_offset)[i] == '\0') eof = true;
+                if (eof) {
+                    curpos += i;
+                    buf += i;
+                    size -= i;
+                    break;
+                }
+
+                memcpy(buf, blk->datum + block_offset, len);
+            }
             else if (type == FILEWRITE || type == DIRUPDATE) {
                 memcpy(blk->datum + block_offset, buf, len);
 
@@ -353,6 +377,8 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
         printf( "[SERVER][ERR] Cannot write inode %d\n", inum);
         return ERROR;
     }
+
+    printf( "[SERVER][LOG] Read/Write %d bytes from/to inode %d's\n", totalbyte, inum);
 
     return totalbyte;
 }
