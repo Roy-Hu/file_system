@@ -25,7 +25,7 @@ int getFreeBlock() {
         }
     }
     
-    TracePrintf( ERR, "[SERVER][ERR] No free block available\n");
+    printf( "[SERVER][ERR] No free block available\n");
     return ERROR;
 }
 
@@ -43,7 +43,7 @@ int getFreeInode() {
         }
     }
 
-    TracePrintf( ERR, "[SERVER][ERR] No free inode available\n");
+    printf( "[SERVER][ERR] No free inode available\n");
 
     return ERROR;
 }

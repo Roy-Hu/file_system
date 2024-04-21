@@ -94,7 +94,7 @@ int Open(char *pathname) {
     if (res != ERROR) {
         int fd = findNewFd();
         if (fd == -1) {
-            TracePrintf( ERR, "[CLIENT][ERR] No more file can be opened\n");
+            printf( "[CLIENT][ERR] No more file can be opened\n");
             free(msg);
             return ERROR;
         }
@@ -107,7 +107,7 @@ int Open(char *pathname) {
 
         return fd;
     } else {
-        TracePrintf( ERR, "[CLIENT][ERR] Fail to open file\n");
+        printf( "[CLIENT][ERR] Fail to open file\n");
         free(msg);
 
         return res;
@@ -122,7 +122,7 @@ number of a file currently open in this process, this request returns ERROR; oth
 int Close(int fd) {
     TracePrintf( LOG, "[CLIENT][LOG] Close Request for fd: %d\n", fd);
     if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
-        TracePrintf( ERR, "[CLIENT][ERR] Close: Not a valid fd: %d number!\n", fd);
+        printf( "[CLIENT][ERR] Close: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
@@ -149,7 +149,7 @@ int Create(char *pathname) {
     if (res != ERROR) {
         int fd = findNewFd();
         if (fd == -1) {
-            TracePrintf( ERR, "[CLIENT][ERR] No more file can be opened\n");
+            printf( "[CLIENT][ERR] No more file can be opened\n");
             return ERROR;
         }
 
@@ -160,7 +160,7 @@ int Create(char *pathname) {
         free(msg);
         return fd;
     } else {
-        TracePrintf( ERR, "[CLIENT][ERR] Fail to create file\n");
+        printf( "[CLIENT][ERR] Fail to create file\n");
 
         free(msg);
         return res;
@@ -171,7 +171,7 @@ int Read(int fd, void *buf, int size) {
     // init fd
     if (!isInit) init();
     if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
-        TracePrintf( ERR, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
+        printf( "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
@@ -196,7 +196,7 @@ int Read(int fd, void *buf, int size) {
         free(msg);
         return byte;
     } else {
-        TracePrintf( ERR, "[CLIENT][ERR] Fail to read file\n");
+        printf( "[CLIENT][ERR] Fail to read file\n");
 
         free(msg);
         return res;
@@ -209,7 +209,7 @@ int Write(int fd, void *buf, int size) {
     // init fd
     if (!isInit) init();
     if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
-        TracePrintf( ERR, "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
+        printf( "[CLIENT][ERR] Write: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
 
@@ -234,7 +234,7 @@ int Write(int fd, void *buf, int size) {
         free(msg);
         return byte;
     } else {
-        TracePrintf( ERR, "[CLIENT][ERR] Fail to create file\n");
+        printf( "[CLIENT][ERR] Fail to create file\n");
 
         free(msg);
         return res;
@@ -245,7 +245,7 @@ int Write(int fd, void *buf, int size) {
 
 int Seek(int fd, int offset, int whence) {
     if (fd < 0 || fd > MAX_OPEN_FILES || files[fd].isValid == false || isInit == false) {
-        TracePrintf( ERR, "[CLIENT][ERR] Seek: Not a valid fd: %d number!\n", fd);
+        printf( "[CLIENT][ERR] Seek: Not a valid fd: %d number!\n", fd);
         return ERROR;
     }
     Messgae* msg = (Messgae*)malloc(sizeof(Messgae));
@@ -267,19 +267,19 @@ int Seek(int fd, int offset, int whence) {
             // should return the end of the file
             short res = msg->reply;
             if (res == ERROR) {
-                TracePrintf( ERR, "[CLIENT][ERR] Seek: fail to find current fileszie\n");
+                printf( "[CLIENT][ERR] Seek: fail to find current fileszie\n");
                 return ERROR;
             }
             seekPos = res + offset;
             break;
         }
         default: {
-            TracePrintf( ERR, "[CLIENT][ERR] Seek: Not a valid whence\n");
+            printf( "[CLIENT][ERR] Seek: Not a valid whence\n");
             break;
         }
     }
     if (seekPos < 0) {
-        TracePrintf( ERR, "[CLIENT][ERR] Seek: seekPos goes beyond the beginning of the file\n");
+        printf( "[CLIENT][ERR] Seek: seekPos goes beyond the beginning of the file\n");
         free(msg);
         return ERROR;
     }
@@ -386,7 +386,7 @@ int ChDir(char *pathname) {
     int res =  (int)msg->reply;
     
     if (res == ERROR) {
-         TracePrintf( ERR, "[CLIENT][ERR] CHDir file errored %d: \n", res);
+         printf( "[CLIENT][ERR] CHDir file errored %d: \n", res);
     }
     CURR_INODE = msg->inum;
     free(msg);
@@ -410,7 +410,7 @@ int Stat(char *pathname, struct Stat *statbuf) {
     int res =  (int)msg->reply;
     free(msg);
     if (res == ERROR) {
-        TracePrintf( ERR, "[CLIENT][ERR] Stat file errored %d: \n", res);
+        printf( "[CLIENT][ERR] Stat file errored %d: \n", res);
         return ERROR;
     }
     
@@ -431,7 +431,7 @@ int Sync(void) {
     int res =  (int)msg->reply;
     free(msg);
     if (res != 0) {
-        TracePrintf( ERR, "[CLIENT][ERR] Sync should alway return 0 instead of %d: \n", res);
+        printf( "[CLIENT][ERR] Sync should alway return 0 instead of %d: \n", res);
     }
 
     TracePrintf( LOG, "[CLIENT][LOG] Finish Sync\n");
@@ -451,7 +451,7 @@ int Shutdown(void) {
     int res =  (int)msg->reply;
     free(msg);
     if (res != 0) {
-        TracePrintf( ERR, "[CLIENT][ERR] Shutdown should alway return 0 instead of %d: \n", res);
+        printf( "[CLIENT][ERR] Shutdown should alway return 0 instead of %d: \n", res);
     }
 
     TracePrintf( LOG, "[CLIENT][LOG] Finish Shutdown\n");

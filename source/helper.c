@@ -15,14 +15,14 @@
  */
 // int normPathname(char* pathname) {
 //     if (pathname == NULL) {
-//         TracePrintf( ERR, "[SERVER][ERR] Pathname is NULL\n");
+//         printf( "[SERVER][ERR] Pathname is NULL\n");
 //         return ERROR;
 //     }
 
 //     int len = strlen(pathname);
 
 //     if (len == 0) {
-//         TracePrintf( ERR, "[SERVER][ERR] Pathname is empty\n");
+//         printf( "[SERVER][ERR] Pathname is empty\n");
 //         return ERROR;
 //     }
 

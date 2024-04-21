@@ -19,7 +19,7 @@ unsigned int b_size;
 /* write the inode */
 int writeInode(int inum, struct inode* inode) {
     if (inum <= 0 || inum > INODE_NUM) {
-        TracePrintf( ERR, "[SERVER][ERR] writeInode: Invalid inum %d\n", inum);
+        printf( "[SERVER][ERR] writeInode: Invalid inum %d\n", inum);
         return ERROR;
     }
 
@@ -31,7 +31,7 @@ int writeInode(int inum, struct inode* inode) {
 /* find the inode given the inum */
 struct inode* findInode(int inum) {
     if (inum <= 0 || (INODE_NUM != 0 && inum > INODE_NUM)) {
-        TracePrintf( ERR, "[SERVER][ERR] findInode: Invalid inum %d\n", inum);
+        printf( "[SERVER][ERR] findInode: Invalid inum %d\n", inum);
         return NULL;
     }
     
@@ -90,7 +90,7 @@ struct inode* lRUGetNode(int key) {
 
         Block* blk = read_block(block_num);
         if (blk == NULL) {
-            TracePrintf( ERR, "[SERVER][CACHE][ERR] Read block %d failed\n", block_num);
+            printf( "[SERVER][CACHE][ERR] Read block %d failed\n", block_num);
             return NULL;
         }
 
@@ -134,7 +134,7 @@ struct block* lRUGetBlk(int key) {
 
         int res = ReadSector(key, (void *) block->datum);
         if (res == ERROR) {
-            TracePrintf( ERR, "[SERVER][CACHE][ERR] ReadSector failed\n");
+            printf( "[SERVER][CACHE][ERR] ReadSector failed\n");
             return NULL;
         }
 
