@@ -40,7 +40,13 @@ void printdirentry(int inum) {
             Block* blk = read_block(inode->direct[block_num]);
             memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
         } else {
-            int indirect_block_num = block_num - NUM_DIRECT;
+            unsigned int indirect_block_num = block_num - NUM_DIRECT;
+
+            if (indirect_block_num >= SECTORSIZE / sizeof(int)) {
+                printf( "[SERVER][ERR] Indirect block num %d exceeds limit\n", indirect_block_num);
+                return;
+            }
+
             Block* indirectBlk = read_block(inode->indirect);
             
             int* indirect = (int*)indirectBlk->datum;
@@ -121,7 +127,13 @@ int inodeDelete(int inum) {
         if (block_num < NUM_DIRECT) {
             freeBlocks[inode->direct[block_num]] = 0;
         } else {
-            int indirect_block_num = block_num - NUM_DIRECT;
+            unsigned int indirect_block_num = block_num - NUM_DIRECT;
+
+            if (indirect_block_num >= SECTORSIZE / sizeof(int)) {
+                printf( "[SERVER][ERR] Indirect block num %d exceeds limit\n", indirect_block_num);
+                return ERROR;
+            }
+
             Block* indirectBlk = read_block(inode->indirect);
             
             int* indirect = (int*)indirectBlk->datum;
@@ -171,7 +183,7 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
     Block* blk = NULL;
     Block* indirectBlk = NULL;
     int* indirect = NULL;
-    int indirect_block_num = 0;
+    unsigned int indirect_block_num = 0;
 
     bool found = false;
     int i;
@@ -184,8 +196,14 @@ int inodeDelEntry(int parentInum, int fileInum, char* eName) {
             memcpy(entry, blk->datum + block_offset, sizeof(struct dir_entry));
         } else {
             indirect_block_num = block_num - NUM_DIRECT;
+
+            if (indirect_block_num >= SECTORSIZE / sizeof(int)) {
+                printf( "[SERVER][ERR] Indirect block num %d exceeds limit\n", indirect_block_num);
+                return ERROR;
+            }
+
             indirectBlk = read_block(parentInode->indirect);
-            
+
             indirect = (int*)indirectBlk->datum;
             blk = read_block(indirect[indirect_block_num]);
 
@@ -271,14 +289,21 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
             if (block_num < NUM_DIRECT) {
                 inode->direct[block_num] = getFreeBlock();
             } else {
+                unsigned int indirect_block_num = block_num - NUM_DIRECT;
+
+                if (indirect_block_num >= SECTORSIZE / sizeof(int)) {
+                    printf( "[SERVER][ERR] Indirect block num %d exceeds limit\n", indirect_block_num);
+                    return ERROR;
+                }
+
                 Block* indirectBlk = read_block(inode->indirect);
                 int* indirect = (int*)indirectBlk->datum;
 
-                if (indirect[block_num - NUM_DIRECT] == 0) {
-                    indirect[block_num - NUM_DIRECT] = getFreeBlock();
+                if (indirect[indirect_block_num] == 0) {
+                    indirect[indirect_block_num] = getFreeBlock();
 
                     if (write_block(inode->indirect, (void *) indirect) == ERROR) {
-                        printf( "[SERVER][ERR] Cannot write block %d\n", indirect[block_num - NUM_DIRECT]);
+                        printf( "[SERVER][ERR] Cannot write block %d\n", indirect[indirect_block_num]);
                         return ERROR;
                     }
                 }
@@ -292,7 +317,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
     bool eof = false;
 
     while (size > 0) {
-        if ((type == FILEREAD || DIRREAD) && curpos >= inode->size) {
+        if ((type == FILEREAD || type == DIRREAD) && curpos >= inode->size) {
             TracePrintf( INF, "[SERVER][INODE %d][TRC] Read at curpos %d, inode size %d\n", inum, curpos, inode->size);
             break;
         }
@@ -303,7 +328,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
 
         int len = BLOCKSIZE - block_offset;
         if (len > size) len = size;
-        if ((type == FILEREAD || DIRREAD) &&  curpos + len > inode->size) len = inode->size - curpos;
+        if ((type == FILEREAD || type == DIRREAD) &&  curpos + len > inode->size) len = inode->size - curpos;
 
         if (block_num < NUM_DIRECT) {
             Block* blk = read_block(inode->direct[block_num]);
@@ -346,7 +371,7 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 if (eof) memcpy(blk->datum + block_offset, buf, i);
                 else memcpy(blk->datum + block_offset, buf, len);
                 
-
+                TracePrintf( TRC, "[SERVER][INODE %d][TRC] Write %d to block %d\n", inum, len, block_num);
                 if (write_block(inode->direct[block_num], (void *) blk->datum) == ERROR) {
                     printf( "[SERVER][ERR] Cannot write block %d\n", inode->direct[block_num]);
                     return ERROR;
@@ -367,7 +392,14 @@ int inodeReadWrite(int inum, void* buf, int curpos, int size, int type) {
                 return ERROR;
             }
         } else {
-            int indirect_block_num = block_num - NUM_DIRECT;
+            unsigned int indirect_block_num = block_num - NUM_DIRECT;
+
+            if (indirect_block_num >= SECTORSIZE / sizeof(int)) {
+                printf( "[SERVER][ERR] Indirect block num %d exceeds limit\n", indirect_block_num);
+                return ERROR;
+            }
+
+            TracePrintf( INF, "[SERVER][INODE %d][TRC] Read/Write at indirect block num %d / SECTORSIZE / sizeof(int) %d\n", inum, indirect_block_num, SECTORSIZE / sizeof(int));
             Block* indirectBlk = read_block(inode->indirect);
             
             int* indirect = (int*)indirectBlk->datum;

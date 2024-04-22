@@ -76,6 +76,7 @@ int yfsWrite(int inum, void* buf, int curpos, int size, int reuse) {
     }
     
     if (curpos > inode->size) {
+        TracePrintf( INF, "[SERVER][INF] Write: Fill holes from %d to %d\n", inode->size, curpos);
         char* holes = (char*)malloc(curpos - inode->size);
         memset(holes, 0, curpos - inode->size);
         inodeReadWrite(inum, holes, inode->size, curpos - inode->size, FILEWRITE);
